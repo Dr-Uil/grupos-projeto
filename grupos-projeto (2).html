@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Grupos de Projeto</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --bg:#0f1117; --surface:#1a1d27; --card:#21253a; --border:#2e3350;
+      --accent:#4f8ef7; --accent2:#a78bfa; --green:#34d399; --red:#f87171;
+      --yellow:#fbbf24; --orange:#fb923c; --text:#e8eaf6; --muted:#7b82a0;
+    }
+    body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; }
+    h1,h2,h3,h4 { font-family:'Syne',sans-serif; }
+    input,select,textarea {
+      font-family:'DM Sans',sans-serif; background:var(--bg); border:1.5px solid var(--border);
+      color:var(--text); border-radius:8px; padding:10px 14px; font-size:14px;
+      width:100%; outline:none; transition:border-color .2s;
+    }
+    input:focus,select:focus { border-color:var(--accent); }
+    input[type=number] { -moz-appearance:textfield; }
+    button { cursor:pointer; font-family:'DM Sans',sans-serif; }
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:var(--bg); }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+    .fade-in { animation:fadeIn .35s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .screen { display:none; min-height:100vh; }
+    .screen.active { display:flex; }
+    .center { align-items:center; justify-content:center; padding:20px; }
+    .col { flex-direction:column; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
+    .btn { border:none; border-radius:8px; font-weight:500; transition:filter .18s; display:inline-flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap; }
+    .btn:hover:not(:disabled) { filter:brightness(1.15); }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    .btn-primary { background:var(--accent); color:#fff; }
+    .btn-purple  { background:var(--accent2); color:#fff; }
+    .btn-ghost   { background:transparent; color:var(--muted); border:1.5px solid var(--border); }
+    .btn-danger  { background:var(--red); color:#fff; }
+    .btn-success { background:var(--green); color:#0f1117; }
+    .btn-orange  { background:var(--orange); color:#fff; }
+    .btn-sm  { padding:6px 12px; font-size:13px; }
+    .btn-md  { padding:10px 18px; font-size:14px; }
+    .btn-lg  { padding:13px 28px; font-size:16px; width:100%; justify-content:center; }
+    .tag { border-radius:6px; padding:2px 8px; font-size:12px; font-weight:500; display:inline-block; }
+    .spinner { border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
+    .modal-overlay { position:fixed; inset:0; background:#000b; display:flex; align-items:center; justify-content:center; z-index:999; padding:16px; }
+    .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:28px; width:100%; max-width:480px; max-height:92vh; overflow-y:auto; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+    .modal-close { background:none; border:none; color:var(--muted); font-size:22px; line-height:1; }
+    .vagas-track { background:var(--border); border-radius:4px; height:5px; overflow:hidden; }
+    .vagas-fill { height:100%; border-radius:4px; transition:width .4s; }
+    #admin-screen { flex-direction:column; }
+    .admin-header { background:var(--surface); border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .admin-body { display:flex; flex:1; overflow:hidden; min-height:0; }
+    .sidebar { width:230px; background:var(--surface); border-right:1px solid var(--border); padding:16px; overflow-y:auto; flex-shrink:0; }
+    .main-content { flex:1; padding:24px; overflow-y:auto; }
+    .grupos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+    .grupo-card { display:flex; flex-direction:column; gap:14px; }
+    .alunos-list { display:flex; flex-direction:column; gap:4px; max-height:160px; overflow-y:auto; }
+    .aluno-item { display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:5px 10px; border-radius:6px; font-size:13px; }
+    .home-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:32px; width:220px; cursor:pointer; transition:all .2s; text-align:center; }
+    .home-card:hover { transform:translateY(-3px); }
+    .blob { position:absolute; border-radius:50%; pointer-events:none; }
+    .live-dot { width:8px; height:8px; border-radius:50%; background:var(--green); display:inline-block; animation:pulse 2s infinite; }
+    .label { font-size:11px; font-weight:700; letter-spacing:1px; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:6px; }
+    .input-row { display:flex; gap:6px; }
+    .add-btn { background:var(--accent); border:none; color:#fff; border-radius:8px; padding:0 12px; cursor:pointer; flex-shrink:0; font-size:18px; }
+    .form-group { display:flex; flex-direction:column; gap:4px; }
+    .form-group label { font-size:12px; color:var(--muted); }
+    .toast { position:fixed; top:14px; right:14px; color:#fff; padding:10px 16px; border-radius:8px; font-size:13px; z-index:9999; display:none; max-width:320px; }
+    .section-title { font-size:11px; font-weight:700; letter-spacing:1px; color:var(--muted); margin-bottom:12px; text-transform:uppercase; }
+    .turma-item { display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-radius:8px; cursor:pointer; margin-bottom:4px; border:1px solid transparent; transition:all .15s; }
+    .turma-item:hover { background:rgba(79,142,247,.1); }
+    .turma-item.active { background:rgba(79,142,247,.13); border-color:rgba(79,142,247,.35); }
+    .turma-name { font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .remove-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; flex-shrink:0; line-height:1; }
+    .remove-btn:hover { color:var(--red); }
+    .empty-state { color:var(--muted); text-align:center; padding:48px; }
+    .grupo-header { display:flex; justify-content:space-between; align-items:flex-start; }
+    .inline-edit { display:flex; gap:6px; align-items:center; }
+    .ok-btn { background:var(--green); border:none; color:#0f1117; border-radius:8px; padding:0 12px; cursor:pointer; flex-shrink:0; font-weight:600; font-size:12px; height:36px; }
+    .clickable-field { display:flex; align-items:center; gap:8px; cursor:pointer; }
+    .edit-hint { font-size:11px; color:var(--accent); opacity:.5; transition:opacity .2s; }
+    .clickable-field:hover .edit-hint { opacity:1; }
+    .grupo-item { background:var(--bg); border:1.5px solid var(--border); border-radius:10px; padding:14px; }
+    .grupo-item.full { border-color:rgba(248,113,113,.4); opacity:.75; }
+    .grupo-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+    .admin-tabs { display:flex; gap:4px; background:var(--surface); border-radius:10px; padding:4px; width:fit-content; }
+    .admin-tab { padding:8px 18px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; border:none; background:transparent; color:var(--muted); transition:all .2s; }
+    .admin-tab.active { background:var(--accent); color:#fff; }
+    .grades-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .grades-table th { background:var(--surface); color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.5px; padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); position:sticky; top:0; }
+    .grades-table td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .grades-table tr:last-child td { border-bottom:none; }
+    .grades-table tr:hover td { background:rgba(79,142,247,.04); }
+    .grade-input { width:70px; padding:5px 8px; font-size:13px; text-align:center; }
+    .total-badge { font-weight:700; font-size:14px; }
+    .group-section { margin-bottom:28px; }
+    .group-section-title { font-size:15px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .export-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:20px; padding:16px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+    /* QR links panel */
+    .qr-turma-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+    .qr-turma-card .link-box { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:12px; color:var(--muted); word-break:break-all; font-family:monospace; }
+    .qr-mini { background:#fff; border-radius:8px; padding:6px; display:inline-block; }
+  </style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<!-- HOME -->
+<div id="home-screen" class="screen active center col" style="position:relative;overflow:hidden;align-items:center;justify-content:center;">
+  <div class="blob" style="width:400px;height:400px;background:radial-gradient(circle,rgba(79,142,247,.1) 0%,transparent 70%);top:-100px;left:-100px;"></div>
+  <div class="blob" style="width:300px;height:300px;background:radial-gradient(circle,rgba(167,139,250,.1) 0%,transparent 70%);bottom:-80px;right:-80px;"></div>
+  <div class="fade-in" style="text-align:center;position:relative;z-index:1;">
+    <div style="font-size:56px;margin-bottom:16px;">📋</div>
+    <h1 style="font-size:34px;background:linear-gradient(135deg,#e8eaf6,#4f8ef7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;">Grupos de Projeto</h1>
+    <p style="color:var(--muted);font-size:16px;margin-bottom:12px;">Plataforma de organização de grupos escolares</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:40px;">
+      <span class="live-dot"></span>
+      <span style="font-size:12px;color:var(--green);">Conectado ao Firebase</span>
+    </div>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+      <div class="home-card" id="btn-student" onmouseenter="this.style.borderColor='var(--green)'" onmouseleave="this.style.borderColor='var(--border)'">
+        <div style="font-size:40px;margin-bottom:12px;">🎓</div>
+        <h3 style="font-size:18px;margin-bottom:6px;">Sou Aluno</h3>
+        <p style="color:var(--muted);font-size:13px;">Cadastre-se em um grupo de projeto</p>
+      </div>
+      <div class="home-card" id="btn-teacher" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+        <div style="font-size:40px;margin-bottom:12px;">👩‍🏫</div>
+        <h3 style="font-size:18px;margin-bottom:6px;">Sou Professor</h3>
+        <p style="color:var(--muted);font-size:13px;">Gerencie turmas, grupos e alunos</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-screen" class="screen center col" style="gap:16px;">
+  <div class="spinner" style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);"></div>
+  <p id="loading-msg" style="color:var(--muted);font-size:15px;">Conectando ao Firebase…</p>
+</div>
+
+<!-- ERROR -->
+<div id="error-screen" class="screen center col" style="gap:16px;text-align:center;padding:24px;">
+  <div style="font-size:48px;">⚠️</div>
+  <h2>Erro de conexão</h2>
+  <p style="color:var(--muted);max-width:440px;font-size:14px;">Verifique se as <b style="color:var(--text);">regras do Firestore</b> estão em modo de teste e tente novamente.</p>
+  <code id="error-msg" style="background:var(--card);padding:12px;border-radius:8px;font-size:12px;color:var(--red);max-width:440px;word-break:break-all;"></code>
+  <button class="btn btn-primary btn-md" onclick="location.reload()">↺ Tentar novamente</button>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen" class="screen center col">
+  <div class="fade-in" style="width:100%;max-width:380px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="font-size:40px;margin-bottom:8px;">🔐</div>
+      <h2 style="font-size:22px;">Acesso do Professor</h2>
+      <p style="color:var(--muted);margin-top:6px;font-size:14px;">Digite a senha para continuar</p>
+    </div>
+    <div class="card">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <input type="password" id="pw-input" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()"/>
+        <p id="pw-error" style="color:var(--red);font-size:13px;display:none;"></p>
+        <button class="btn btn-primary btn-lg" onclick="doLogin()">Entrar</button>
+        <button class="btn btn-ghost btn-lg" onclick="showScreen('home-screen')">← Voltar</button>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:12px;text-align:center;margin-top:16px;">Senha padrão: <b style="color:var(--text);">prof1234</b></p>
+  </div>
+</div>
+
+<!-- STUDENT (turma fixa via URL ou seleção) -->
+<div id="student-screen" class="screen center col">
+  <div class="fade-in" style="width:100%;max-width:500px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="font-size:40px;margin-bottom:8px;">🎓</div>
+      <h2 style="font-size:24px;">Cadastro de Aluno</h2>
+      <!-- turma fixa badge -->
+      <div id="turma-badge" style="display:none;margin-top:10px;">
+        <span id="turma-badge-text" style="background:rgba(79,142,247,.15);color:var(--accent);border:1px solid rgba(79,142,247,.3);border-radius:20px;padding:5px 16px;font-size:14px;font-weight:600;"></span>
+      </div>
+      <p id="turma-hint" style="color:var(--muted);margin-top:6px;font-size:14px;">Inscreva-se em um grupo do seu projeto</p>
+    </div>
+    <div class="card">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="form-group">
+          <label>Seu nome completo</label>
+          <input id="student-name" placeholder="Ex: Maria da Silva"/>
+        </div>
+        <!-- select turma — oculto quando turma vem da URL -->
+        <div class="form-group" id="turma-select-wrap">
+          <label>Turma</label>
+          <select id="student-turma" onchange="renderStudentGrupos()">
+            <option value="">Selecione a turma…</option>
+          </select>
+        </div>
+        <div id="already-in" style="background:rgba(251,191,36,.13);border:1px solid rgba(251,191,36,.27);border-radius:8px;padding:12px;font-size:13px;color:var(--yellow);display:none;"></div>
+        <div id="student-grupos"></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:16px;">
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('home-screen')">← Voltar</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div id="success-screen" class="screen center col">
+  <div class="fade-in" style="text-align:center;max-width:400px;">
+    <div style="font-size:64px;margin-bottom:16px;">🎉</div>
+    <h2 style="font-size:24px;margin-bottom:8px;">Cadastro realizado!</h2>
+    <p id="success-msg" style="color:var(--muted);margin-bottom:24px;line-height:1.6;"></p>
+    <button class="btn btn-ghost btn-md" onclick="goBackToStudent()">Cadastrar outro aluno</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin-screen" class="screen" style="min-height:100vh;flex-direction:column;">
+  <div class="admin-header">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" onclick="showScreen('home-screen')">← Voltar</button>
+      <h2 style="font-size:18px;">Painel do Professor</h2>
+      <div id="save-indicator" style="display:none;align-items:center;gap:6px;">
+        <div class="spinner" style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);"></div>
+        <span style="color:var(--muted);font-size:12px;">Salvando…</span>
+      </div>
+      <div id="live-indicator" style="display:flex;align-items:center;gap:5px;">
+        <span class="live-dot"></span>
+        <span style="font-size:12px;color:var(--green);">Ao vivo</span>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="showChangePw()">🔑 Alterar senha</button>
+  </div>
+  <div class="admin-body">
+    <div class="sidebar">
+      <div class="section-title">Turmas</div>
+      <div id="turmas-list"></div>
+      <div class="input-row" style="margin-top:12px;">
+        <input id="new-turma-input" placeholder="Nova turma…" style="font-size:13px;padding:7px 10px;" onkeydown="if(event.key==='Enter')addTurma()"/>
+        <button class="add-btn" onclick="addTurma()">+</button>
+      </div>
+    </div>
+    <div class="main-content">
+      <div id="no-turma" class="empty-state" style="margin-top:60px;">
+        <div style="font-size:48px;margin-bottom:12px;">👈</div>
+        <p>Selecione ou crie uma turma para começar</p>
+      </div>
+      <div id="turma-content" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+          <h3 id="turma-title" style="font-size:20px;"></h3>
+          <div class="admin-tabs">
+            <button class="admin-tab active" id="tab-grupos" onclick="switchTab('grupos')">👥 Grupos</button>
+            <button class="admin-tab" id="tab-qr"     onclick="switchTab('qr')">📱 QR / Link</button>
+            <button class="admin-tab" id="tab-notas"  onclick="switchTab('notas')">📊 Notas</button>
+          </div>
+        </div>
+
+        <!-- Tab Grupos -->
+        <div id="panel-grupos">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+            <button class="btn btn-primary btn-sm" onclick="showAddGrupo()">+ Novo grupo</button>
+          </div>
+          <div id="grupos-grid" class="grupos-grid"></div>
+          <div id="no-grupos" class="empty-state" style="display:none;">
+            <div style="font-size:40px;margin-bottom:10px;">📂</div>
+            <p>Nenhum grupo criado. Clique em "+ Novo grupo".</p>
+          </div>
+        </div>
+
+        <!-- Tab QR / Link -->
+        <div id="panel-qr" style="display:none;">
+          <div class="qr-turma-card fade-in">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div class="qr-mini" id="qr-turma-box"></div>
+              <div style="flex:1;min-width:220px;">
+                <p style="font-size:13px;color:var(--muted);margin-bottom:6px;">Link exclusivo desta turma. Apenas alunos com este link poderão se inscrever nos grupos.</p>
+                <div class="link-box" id="qr-turma-url"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-success btn-sm" onclick="downloadTurmaQR()">⬇ Baixar QR Code PNG</button>
+              <button class="btn btn-ghost btn-sm" onclick="copyTurmaUrl()">📋 Copiar link</button>
+              <button class="btn btn-purple btn-sm" onclick="printTurmaQR()">🖨️ Imprimir</button>
+            </div>
+            <p style="font-size:11px;color:var(--muted);">💡 Distribua o QR Code ou o link somente para os alunos desta turma. O aluno já cai direto nela sem precisar escolher.</p>
+          </div>
+        </div>
+
+        <!-- Tab Notas -->
+        <div id="panel-notas" style="display:none;">
+          <div class="export-bar">
+            <span style="font-size:14px;font-weight:600;">Exportar lançamento de notas:</span>
+            <button class="btn btn-success btn-sm" onclick="exportXLSX()">📥 Excel (.xlsx)</button>
+            <button class="btn btn-orange btn-sm" onclick="exportPDF()">📄 PDF</button>
+            <span style="font-size:12px;color:var(--muted);">Notas salvas automaticamente.</span>
+          </div>
+          <div id="notas-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add Grupo -->
+<div id="modal-addgrupo" class="modal-overlay" style="display:none;">
+  <div class="modal-box fade-in">
+    <div class="modal-header"><h3>Novo Grupo</h3><button class="modal-close" onclick="closeModal('modal-addgrupo')">×</button></div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div class="form-group"><label>Nome do grupo *</label><input id="new-grupo-nome" placeholder="Ex: Grupo A"/></div>
+      <div class="form-group"><label>Tema (opcional)</label><input id="new-grupo-tema" placeholder="Ex: Energia Solar"/></div>
+      <div class="form-group"><label>Limite de vagas (0 = sem limite)</label><input id="new-grupo-limite" type="number" min="0" value="0"/></div>
+      <button class="btn btn-primary btn-md" style="justify-content:center;" onclick="confirmAddGrupo()">Criar grupo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Change Password -->
+<div id="modal-pw" class="modal-overlay" style="display:none;">
+  <div class="modal-box fade-in">
+    <div class="modal-header"><h3>Alterar Senha</h3><button class="modal-close" onclick="closeModal('modal-pw')">×</button></div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <input type="password" id="new-pw-input" placeholder="Nova senha"/>
+      <button class="btn btn-primary btn-md" style="justify-content:center;" onclick="confirmChangePw()">Salvar senha</button>
+    </div>
+  </div>
+</div>
+
+<!-- Print helper (hidden) -->
+<div id="print-area" style="display:none;"></div>
+<style>
+@media print {
+  body > *:not(#print-area) { display:none !important; }
+  #print-area { display:block !important; }
+}
+</style>
+
+<script>
+// ── Firebase REST ─────────────────────────────────────────────────────────────
+const FB_PROJECT = "grupos-projeto";
+const FB_API_KEY = "AIzaSyC2vDmCS2yRtKtPSDjhJJVxG8j7wd9HEZo";
+const FB_BASE    = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
+const DOC_PATH   = "app/dados";
+
+function toFS(obj) {
+  if (obj===null||obj===undefined) return {nullValue:null};
+  if (typeof obj==="boolean") return {booleanValue:obj};
+  if (typeof obj==="number") return {integerValue:String(Math.round(obj))};
+  if (typeof obj==="string") return {stringValue:obj};
+  if (Array.isArray(obj)) return {arrayValue:{values:obj.length?obj.map(toFS):[]}};
+  if (typeof obj==="object") {
+    const fields={};
+    for(const [k,v] of Object.entries(obj)) fields[k]=toFS(v);
+    return {mapValue:{fields}};
+  }
+  return {stringValue:String(obj)};
+}
+function fromFS(val) {
+  if(!val) return null;
+  if("nullValue"    in val) return null;
+  if("booleanValue" in val) return val.booleanValue;
+  if("integerValue" in val) return Number(val.integerValue);
+  if("doubleValue"  in val) return val.doubleValue;
+  if("stringValue"  in val) return val.stringValue;
+  if("arrayValue"   in val) return (val.arrayValue.values||[]).map(fromFS);
+  if("mapValue"     in val) {
+    const obj={};
+    for(const [k,v] of Object.entries(val.mapValue.fields||{})) obj[k]=fromFS(v);
+    return obj;
+  }
+  return null;
+}
+async function fbGet() {
+  const r=await fetch(`${FB_BASE}/${DOC_PATH}?key=${FB_API_KEY}`);
+  if(r.status===404) return null;
+  if(!r.ok) throw new Error(`GET ${r.status}: ${await r.text()}`);
+  const json=await r.json();
+  const obj={};
+  for(const [k,v] of Object.entries(json.fields||{})) obj[k]=fromFS(v);
+  return obj;
+}
+async function fbSet(data) {
+  const fields={};
+  for(const [k,v] of Object.entries(data)) fields[k]=toFS(v);
+  const r=await fetch(`${FB_BASE}/${DOC_PATH}?key=${FB_API_KEY}`,{
+    method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields})
+  });
+  if(!r.ok) throw new Error(`PATCH ${r.status}: ${await r.text()}`);
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let DB=null, activeTurma="", activeTab="grupos", pollTimer=null;
+let fixedTurma=null; // turma from URL ?turma=
+
+const GRADE_FIELDS=[
+  {key:"entrega_preliminar",label:"Entrega Preliminar",max:10},
+  {key:"entrega_final",     label:"Entrega Final",     max:20},
+  {key:"apresentacao_final",label:"Apresentação Final",max:20},
+];
+const GRADE_MAX=50;
+
+function uid(){return Math.random().toString(36).slice(2,9);}
+function initData(){return {turmas:{},password:"prof1234"};}
+
+// ── URL helpers ───────────────────────────────────────────────────────────────
+function getBaseUrl() {
+  return window.location.origin + window.location.pathname;
+}
+function turmaUrl(turma) {
+  return getBaseUrl() + "?turma=" + encodeURIComponent(turma);
+}
+function getUrlTurma() {
+  const p=new URLSearchParams(window.location.search);
+  return p.get("turma")||null;
+}
+
+// ── Screens ───────────────────────────────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+function toast(msg,color="#34d399"){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.style.background=color; t.style.display="block";
+  setTimeout(()=>t.style.display="none",3000);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  showScreen("loading-screen");
+  fixedTurma = getUrlTurma();
+  try {
+    let d=await fbGet();
+    if(!d){d=initData();await fbSet(d);}
+    DB=d;
+    // If URL has ?turma=, go straight to student screen for that turma
+    if(fixedTurma && DB.turmas[fixedTurma]) {
+      openStudentForTurma(fixedTurma);
+    } else if(fixedTurma && !DB.turmas[fixedTurma]) {
+      // Turma doesn't exist — show friendly error
+      showScreen("home-screen");
+      setTimeout(()=>toast("Turma não encontrada: "+fixedTurma,"#f87171"),400);
+    } else {
+      showScreen("home-screen");
+    }
+    startPoll();
+  } catch(e) {
+    document.getElementById("error-msg").textContent=e.message;
+    showScreen("error-screen");
+  }
+}
+
+function startPoll(){
+  if(pollTimer) clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    try{const d=await fbGet();if(d){DB=d;silentRefresh();}}catch(e){}
+  },30000); // poll every 30s — only syncs data, never interrupts editing
+}
+
+function userIsTyping(){
+  // Returns true if any input/select/textarea currently has focus
+  const tag=(document.activeElement||{}).tagName||"";
+  return ["INPUT","TEXTAREA","SELECT"].includes(tag);
+}
+
+function silentRefresh(){
+  // Never re-render while the user is actively typing or editing a field
+  if(userIsTyping()) return;
+
+  if(document.getElementById("admin-screen").classList.contains("active")){
+    renderTurmas();
+    // Never auto-refresh notas tab — user may be entering grades
+    if(activeTab==="grupos") renderGrupos();
+    // QR tab needs no refresh
+  }
+  if(document.getElementById("student-screen").classList.contains("active")){
+    if(!fixedTurma) renderStudentTurmas();
+    renderStudentGrupos();
+  }
+}
+async function persist(){
+  const ind=document.getElementById("save-indicator"),live=document.getElementById("live-indicator");
+  ind.style.display="flex";live.style.display="none";
+  try{await fbSet(DB);}catch(e){toast("Erro ao salvar: "+e.message,"#f87171");}
+  ind.style.display="none";live.style.display="flex";
+}
+
+// ── Home buttons ──────────────────────────────────────────────────────────────
+document.getElementById("btn-student").onclick=()=>{
+  resetStudentForm();
+  renderStudentTurmas();
+  showScreen("student-screen");
+};
+document.getElementById("btn-teacher").onclick=()=>{
+  if(sessionStorage.getItem("grupos-admin")==="ok") showAdmin();
+  else showScreen("login-screen");
+};
+
+// ── Open student screen locked to a specific turma ───────────────────────────
+function openStudentForTurma(turma){
+  fixedTurma=turma;
+  resetStudentForm();
+  // Hide turma selector, show badge
+  document.getElementById("turma-select-wrap").style.display="none";
+  document.getElementById("turma-badge").style.display="block";
+  document.getElementById("turma-badge-text").textContent="📚 "+turma;
+  document.getElementById("turma-hint").style.display="none";
+  // Set value internally
+  renderStudentGrupos();
+  showScreen("student-screen");
+}
+
+function resetStudentForm(){
+  document.getElementById("student-name").value="";
+  document.getElementById("student-turma").value="";
+  document.getElementById("student-grupos").innerHTML="";
+  document.getElementById("already-in").style.display="none";
+  // Restore UI for non-fixed turma
+  if(!fixedTurma){
+    document.getElementById("turma-select-wrap").style.display="flex";
+    document.getElementById("turma-badge").style.display="none";
+    document.getElementById("turma-hint").style.display="block";
+  }
+}
+
+// ── Login ─────────────────────────────────────────────────────────────────────
+function doLogin(){
+  const pw=document.getElementById("pw-input").value;
+  const err=document.getElementById("pw-error");
+  if(pw===DB.password){
+    sessionStorage.setItem("grupos-admin","ok");
+    err.style.display="none";
+    document.getElementById("pw-input").value="";
+    showAdmin();
+  } else {err.textContent="Senha incorreta.";err.style.display="block";}
+}
+
+// ── Admin ─────────────────────────────────────────────────────────────────────
+function showAdmin(){renderTurmas();renderGrupos();showScreen("admin-screen");}
+
+function switchTab(tab){
+  activeTab=tab;
+  ["grupos","qr","notas"].forEach(t=>{
+    document.getElementById("tab-"+t).classList.toggle("active",t===tab);
+    document.getElementById("panel-"+t).style.display=t===tab?"block":"none";
+  });
+  if(tab==="qr")    renderTurmaQR();
+  if(tab==="notas") renderNotas();
+}
+
+function renderTurmas(){
+  const list=document.getElementById("turmas-list");
+  list.innerHTML="";
+  for(const nome of Object.keys(DB.turmas)){
+    const div=document.createElement("div");
+    div.className="turma-item"+(activeTurma===nome?" active":"");
+    div.innerHTML=`<span class="turma-name" style="color:${activeTurma===nome?"var(--accent)":"var(--text)"};">${esc(nome)}</span>
+      <button class="remove-btn" onclick="event.stopPropagation();deleteTurma('${esc(nome)}')">×</button>`;
+    div.onclick=()=>{activeTurma=nome;renderTurmas();switchTab(activeTab);};
+    list.appendChild(div);
+  }
+}
+
+function renderGrupos(){
+  const content=document.getElementById("turma-content"),noTurma=document.getElementById("no-turma");
+  if(!activeTurma||!DB.turmas[activeTurma]){content.style.display="none";noTurma.style.display="block";return;}
+  content.style.display="block";noTurma.style.display="none";
+  document.getElementById("turma-title").textContent="Turma: "+activeTurma;
+  const grupos=DB.turmas[activeTurma].grupos||{};
+  const grid=document.getElementById("grupos-grid"),noG=document.getElementById("no-grupos");
+  grid.innerHTML="";
+  if(!Object.keys(grupos).length){noG.style.display="block";return;}
+  noG.style.display="none";
+  for(const [gid,g] of Object.entries(grupos)) grid.appendChild(buildGrupoCard(gid,g));
+}
+
+function buildGrupoCard(gid,g){
+  const alunos=g.alunos||[],cheio=g.limite>0&&alunos.length>=g.limite;
+  const pct=g.limite?Math.min(100,alunos.length/g.limite*100):0;
+  const barColor=cheio?"var(--red)":pct>70?"var(--orange)":"var(--green)";
+  const repTag=g.representante?`<div style="margin-top:4px;"><span class="tag" style="background:rgba(251,191,36,.13);color:var(--yellow);border:1px solid rgba(251,191,36,.27);">👑 ${esc(g.representante)}</span></div>`:"";
+  const card=document.createElement("div");
+  card.className="card grupo-card";
+  card.innerHTML=`
+    <div class="grupo-header">
+      <div><b style="font-size:16px;">${esc(g.nome)}</b>${repTag}</div>
+      <button class="btn btn-danger btn-sm" onclick="deleteGrupo('${gid}')">✕</button>
+    </div>
+    <div id="vagas-wrap-${gid}" style="cursor:pointer;" onclick="editLimite('${gid}')">
+      ${g.limite>0?`
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:11px;color:var(--muted);">VAGAS</span>
+          <span style="font-size:12px;color:${barColor};font-weight:600;">${alunos.length}/${g.limite}${cheio?" • CHEIO":""}</span>
+        </div>
+        <div class="vagas-track"><div class="vagas-fill" style="width:${pct}%;background:${barColor};"></div></div>
+        ${cheio?`<div style="margin-top:6px;"><span class="tag" style="background:rgba(248,113,113,.13);color:var(--red);border:1px solid rgba(248,113,113,.27);">🔒 Grupo cheio</span></div>`:""}
+      `:`<span style="font-size:12px;color:var(--muted);">🔢 Sem limite — <span style="color:var(--accent);">clique para definir</span></span>`}
+    </div>
+    <div id="limite-edit-${gid}" style="display:none;" class="inline-edit">
+      <input type="number" min="0" id="limite-val-${gid}" value="${g.limite||0}" style="font-size:13px;padding:6px 10px;"/>
+      <button class="ok-btn" onclick="saveLimite('${gid}')">OK</button>
+    </div>
+    <div id="tema-view-${gid}" class="clickable-field" onclick="editTema('${gid}')">
+      <span style="font-size:13px;color:${g.tema?"var(--text)":"var(--muted)"};">📚 ${g.tema?esc(g.tema):"Clique para definir o tema…"}</span>
+      <span class="edit-hint">✏️</span>
+    </div>
+    <div id="tema-edit-${gid}" style="display:none;" class="inline-edit">
+      <input id="tema-val-${gid}" value="${esc(g.tema||"")}" placeholder="Tema…" style="font-size:13px;"/>
+      <button class="ok-btn" onclick="saveTema('${gid}')">OK</button>
+    </div>
+    <div>
+      <span class="label">Representante</span>
+      <select style="font-size:13px;padding:6px 10px;" onchange="saveRep('${gid}',this.value)">
+        <option value="">Nenhum</option>
+        ${alunos.map(a=>`<option value="${esc(a)}"${g.representante===a?" selected":""}>${esc(a)}</option>`).join("")}
+      </select>
+    </div>
+    <div>
+      <span class="label">Alunos (${alunos.length}${g.limite?"/"+g.limite:""})</span>
+      ${alunos.length===0?`<p style="color:var(--muted);font-size:12px;margin-bottom:6px;">Nenhum aluno ainda.</p>`:""}
+      <div class="alunos-list">
+        ${alunos.map(a=>`<div class="aluno-item"><span>${esc(a)}${g.representante===a?" 👑":""}</span><button class="remove-btn" onclick="removeAluno('${gid}','${esc(a).replace(/'/g,"\\'")}')">×</button></div>`).join("")}
+      </div>
+      <div class="input-row" style="margin-top:8px;">
+        <input id="new-aluno-${gid}" placeholder="Adicionar aluno…" style="font-size:12px;padding:6px 10px;"
+          onkeydown="if(event.key==='Enter'&&this.value.trim()){addAluno('${gid}',this.value.trim());this.value='';}"/>
+        <button class="add-btn" onclick="const i=document.getElementById('new-aluno-${gid}');if(i.value.trim()){addAluno('${gid}',i.value.trim());i.value='';}">+</button>
+      </div>
+    </div>`;
+  return card;
+}
+
+function editLimite(gid){document.getElementById(`vagas-wrap-${gid}`).style.display="none";document.getElementById(`limite-edit-${gid}`).style.display="flex";document.getElementById(`limite-val-${gid}`).focus();}
+function saveLimite(gid){DB.turmas[activeTurma].grupos[gid].limite=Number(document.getElementById(`limite-val-${gid}`).value)||0;persist();renderGrupos();}
+function editTema(gid){document.getElementById(`tema-view-${gid}`).style.display="none";document.getElementById(`tema-edit-${gid}`).style.display="flex";document.getElementById(`tema-val-${gid}`).focus();}
+function saveTema(gid){DB.turmas[activeTurma].grupos[gid].tema=document.getElementById(`tema-val-${gid}`).value.trim();persist();renderGrupos();}
+function saveRep(gid,val){DB.turmas[activeTurma].grupos[gid].representante=val;persist();}
+function removeAluno(gid,name){const g=DB.turmas[activeTurma].grupos[gid];g.alunos=(g.alunos||[]).filter(a=>a!==name);if(g.representante===name)g.representante="";persist();renderGrupos();}
+function addAluno(gid,name){const g=DB.turmas[activeTurma].grupos[gid];if(!(g.alunos||[]).includes(name)){g.alunos=[...(g.alunos||[]),name];persist();renderGrupos();}}
+function deleteGrupo(gid){if(!confirm("Excluir este grupo?"))return;delete DB.turmas[activeTurma].grupos[gid];persist();renderGrupos();}
+
+function addTurma(){
+  const inp=document.getElementById("new-turma-input"),nome=inp.value.trim();
+  if(!nome||DB.turmas[nome])return;
+  DB.turmas[nome]={grupos:{}};inp.value="";activeTurma=nome;persist();renderTurmas();switchTab("grupos");
+}
+function deleteTurma(nome){
+  if(!confirm(`Excluir turma "${nome}"?`))return;
+  delete DB.turmas[nome];if(activeTurma===nome)activeTurma="";
+  persist();renderTurmas();renderGrupos();
+}
+function showAddGrupo(){document.getElementById("new-grupo-nome").value="";document.getElementById("new-grupo-tema").value="";document.getElementById("new-grupo-limite").value="0";document.getElementById("modal-addgrupo").style.display="flex";}
+function confirmAddGrupo(){
+  const nome=document.getElementById("new-grupo-nome").value.trim();if(!nome)return;
+  const tema=document.getElementById("new-grupo-tema").value.trim();
+  const limite=Number(document.getElementById("new-grupo-limite").value)||0;
+  DB.turmas[activeTurma].grupos[uid()]={nome,tema,limite,representante:"",alunos:[],notas:{}};
+  persist();closeModal("modal-addgrupo");renderGrupos();
+}
+function showChangePw(){document.getElementById("new-pw-input").value="";document.getElementById("modal-pw").style.display="flex";}
+function confirmChangePw(){const np=document.getElementById("new-pw-input").value.trim();if(!np)return;DB.password=np;persist();closeModal("modal-pw");toast("Senha alterada!");}
+function closeModal(id){document.getElementById(id).style.display="none";}
+document.querySelectorAll(".modal-overlay").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.style.display="none";}));
+
+// ── QR por turma ──────────────────────────────────────────────────────────────
+let turmaQRInstance=null;
+
+function renderTurmaQR(){
+  if(!activeTurma) return;
+  document.getElementById("turma-title").textContent="Turma: "+activeTurma;
+  const url=turmaUrl(activeTurma);
+  document.getElementById("qr-turma-url").textContent=url;
+  const box=document.getElementById("qr-turma-box");
+  box.innerHTML="";
+  turmaQRInstance=null;
+  try{
+    turmaQRInstance=new QRCode(box,{text:url,width:140,height:140,colorDark:"#0f1117",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H});
+  }catch(e){}
+}
+
+function downloadTurmaQR(){
+  const box=document.getElementById("qr-turma-box");
+  const canvas=box.querySelector("canvas");
+  if(!canvas){toast("Aguarde o QR ser gerado.","#f87171");return;}
+  const c2=document.createElement("canvas");c2.width=400;c2.height=460;
+  const ctx=c2.getContext("2d");
+  // background
+  ctx.fillStyle="#0f1117";ctx.fillRect(0,0,400,460);
+  // accent bar
+  ctx.fillStyle="#4f8ef7";ctx.fillRect(0,0,400,50);
+  ctx.fillStyle="#ffffff";ctx.font="bold 18px sans-serif";ctx.textAlign="center";
+  ctx.fillText("Grupos de Projeto",200,32);
+  // white QR box
+  ctx.fillStyle="#ffffff";ctx.roundRect(80,70,240,240,12);ctx.fill();
+  ctx.drawImage(canvas,90,80,220,220);
+  // turma name
+  ctx.fillStyle="#e8eaf6";ctx.font="bold 16px sans-serif";ctx.textAlign="center";
+  ctx.fillText("Turma: "+activeTurma,200,340);
+  ctx.fillStyle="#7b82a0";ctx.font="12px sans-serif";
+  ctx.fillText("Aponte a câmera para entrar nos grupos",200,362);
+  // url
+  ctx.fillStyle="#4f8ef7";ctx.font="10px monospace";
+  const url=turmaUrl(activeTurma);
+  ctx.fillText(url.length>55?url.substring(0,52)+"...":url,200,390);
+
+  const a=document.createElement("a");
+  a.download=`qrcode-turma-${activeTurma.replace(/\s+/g,"-")}.png`;
+  a.href=c2.toDataURL();a.click();
+  toast("QR Code baixado!");
+}
+
+function copyTurmaUrl(){
+  const url=turmaUrl(activeTurma);
+  navigator.clipboard?.writeText(url).then(()=>toast("Link copiado!")).catch(()=>{
+    prompt("Copie o link abaixo:",url);
+  });
+}
+
+function printTurmaQR(){
+  const box=document.getElementById("qr-turma-box");
+  const canvas=box.querySelector("canvas");
+  const url=turmaUrl(activeTurma);
+  const img=canvas?canvas.toDataURL():"";
+  const pa=document.getElementById("print-area");
+  pa.innerHTML=`
+    <div style="font-family:sans-serif;text-align:center;padding:40px;background:#fff;color:#000;">
+      <h1 style="font-size:24px;margin-bottom:4px;">Grupos de Projeto</h1>
+      <h2 style="font-size:20px;color:#4f8ef7;margin-bottom:24px;">Turma: ${esc(activeTurma)}</h2>
+      ${img?`<img src="${img}" style="width:220px;height:220px;border:2px solid #eee;border-radius:8px;"/>`:""}
+      <p style="margin-top:16px;font-size:14px;color:#555;">Aponte a câmera do celular para o QR Code acima<br/>ou acesse o link:</p>
+      <p style="margin-top:8px;font-size:12px;color:#4f8ef7;word-break:break-all;">${url}</p>
+      <p style="margin-top:24px;font-size:12px;color:#aaa;">Use este link/QR Code somente para alunos desta turma.</p>
+    </div>`;
+  window.print();
+}
+
+// ── Notas ─────────────────────────────────────────────────────────────────────
+function ensureNotas(){
+  if(!activeTurma||!DB.turmas[activeTurma])return;
+  for(const g of Object.values(DB.turmas[activeTurma].grupos||{})){
+    if(!g.notas)g.notas={};
+    for(const f of GRADE_FIELDS)if(!(f.key in g.notas))g.notas[f.key]=null;
+  }
+}
+function renderNotas(){
+  if(!activeTurma||!DB.turmas[activeTurma]){document.getElementById("notas-content").innerHTML=`<div class="empty-state"><p>Selecione uma turma.</p></div>`;return;}
+  ensureNotas();
+  document.getElementById("turma-title").textContent="Turma: "+activeTurma;
+  const grupos=DB.turmas[activeTurma].grupos||{};
+  const container=document.getElementById("notas-content");
+  if(!Object.keys(grupos).length){container.innerHTML=`<div class="empty-state"><div style="font-size:40px;margin-bottom:10px;">📂</div><p>Nenhum grupo criado ainda.</p></div>`;return;}
+  let html="";
+  for(const [gid,g] of Object.entries(grupos)){
+    const alunos=g.alunos||[],notas=g.notas||{};
+    const total=GRADE_FIELDS.map(f=>Number(notas[f.key])||0).reduce((a,b)=>a+b,0);
+    const totColor=total>=45?"var(--green)":total>=25?"var(--orange)":"var(--red)";
+    html+=`<div class="group-section">
+      <div class="group-section-title">
+        <span>📁 ${esc(g.nome)}</span>
+        ${g.tema?`<span style="font-size:12px;color:var(--muted);font-weight:400;">— ${esc(g.tema)}</span>`:""}
+        ${g.representante?`<span class="tag" style="background:rgba(251,191,36,.13);color:var(--yellow);border:1px solid rgba(251,191,36,.27);font-size:11px;">👑 ${esc(g.representante)}</span>`:""}
+      </div>
+      <div style="overflow-x:auto;">
+      <table class="grades-table"><thead><tr>
+        <th>Aluno</th>
+        ${GRADE_FIELDS.map(f=>`<th>${esc(f.label)}<br/><span style="font-weight:400;font-size:10px;">até ${f.max} pts</span></th>`).join("")}
+        <th>Total<br/><span style="font-weight:400;font-size:10px;">/ ${GRADE_MAX} pts</span></th>
+      </tr></thead><tbody>`;
+    if(alunos.length===0){
+      html+=`<tr><td colspan="${GRADE_FIELDS.length+2}" style="color:var(--muted);font-style:italic;">Nenhum aluno neste grupo.</td></tr>`;
+    } else {
+      alunos.forEach(aluno=>{
+        html+=`<tr>
+          <td><b>${esc(aluno)}</b>${g.representante===aluno?" 👑":""}</td>
+          ${GRADE_FIELDS.map(f=>{
+            const v=notas[f.key]!=null?notas[f.key]:"";
+            return `<td><input type="number" min="0" max="${f.max}" class="grade-input" value="${v}" placeholder="—" onchange="saveNota('${gid}','${f.key}',this.value,${f.max})"/></td>`;
+          }).join("")}
+          <td><span id="gtotal-${gid}" class="total-badge" style="color:${totColor};">${total}/${GRADE_MAX}</span></td>
+        </tr>`;
+      });
+    }
+    html+=`</tbody></table></div></div>`;
+  }
+  container.innerHTML=html;
+}
+function saveNota(gid,field,rawVal,max){
+  if(!DB.turmas[activeTurma].grupos[gid].notas)DB.turmas[activeTurma].grupos[gid].notas={};
+  let val=rawVal===""?null:Math.min(max,Math.max(0,Number(rawVal)));
+  DB.turmas[activeTurma].grupos[gid].notas[field]=val;
+  persist();
+  const g=DB.turmas[activeTurma].grupos[gid],notas=g.notas||{};
+  const total=GRADE_FIELDS.map(f=>Number(notas[f.key])||0).reduce((a,b)=>a+b,0);
+  const color=total>=45?"var(--green)":total>=25?"var(--orange)":"var(--red)";
+  const el=document.getElementById(`gtotal-${gid}`);
+  if(el){el.textContent=`${total}/${GRADE_MAX}`;el.style.color=color;}
+}
+
+// ── Export XLSX ───────────────────────────────────────────────────────────────
+function exportXLSX(){
+  if(!activeTurma||!DB.turmas[activeTurma]){toast("Selecione uma turma.","#f87171");return;}
+  ensureNotas();
+  const grupos=DB.turmas[activeTurma].grupos||{};
+  const wb=XLSX.utils.book_new();
+  const rows=[
+    ["LANÇAMENTO DE NOTAS — Turma: "+activeTurma],[],
+    ["Grupo","Tema","Aluno","Representante","Entrega Preliminar (10pts)","Entrega Final (20pts)","Apresentação Final (20pts)","TOTAL (50pts)"]
+  ];
+  for(const [,g] of Object.entries(grupos)){
+    const n=g.notas||{},ep=n.entrega_preliminar!=null?n.entrega_preliminar:"",ef=n.entrega_final!=null?n.entrega_final:"",af=n.apresentacao_final!=null?n.apresentacao_final:"";
+    const total=(Number(ep)||0)+(Number(ef)||0)+(Number(af)||0);
+    const alunos=g.alunos||[];
+    if(!alunos.length) rows.push([g.nome,g.tema||"","(sem alunos)","",(ep!==""?ep:""),(ef!==""?ef:""),(af!==""?af:""),(ep!==""||ef!==""||af!==""?total:"")]);
+    else alunos.forEach(a=>rows.push([g.nome,g.tema||"",a,a===g.representante?"Sim":"",(ep!==""?ep:""),(ef!==""?ef:""),(af!==""?af:""),(ep!==""||ef!==""||af!==""?total:"")]));
+    rows.push([]);
+  }
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"]=[{wch:20},{wch:25},{wch:30},{wch:14},{wch:22},{wch:20},{wch:22},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws,"Notas");
+  XLSX.writeFile(wb,`notas-${activeTurma.replace(/\s/g,"_")}.xlsx`);
+  toast("Planilha exportada!");
+}
+
+// ── Export PDF ────────────────────────────────────────────────────────────────
+function exportPDF(){
+  if(!activeTurma||!DB.turmas[activeTurma]){toast("Selecione uma turma.","#f87171");return;}
+  ensureNotas();
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
+  const grupos=Object.entries(DB.turmas[activeTurma].grupos||{});
+  const PW=297,PH=210,M=14,ROW=8;
+  const COLS=[60,50,32,32,32,28];
+  const DARK=[21,25,39],ACCENT=[79,142,247],MUTED=[123,130,160],WHITE=[232,234,246],GREEN=[52,211,153],ORANGE=[251,146,60],RED=[248,113,113];
+
+  doc.setFillColor(...DARK);doc.rect(0,0,PW,PH,"F");
+  doc.setFillColor(...ACCENT);doc.rect(0,0,PW,12,"F");
+  doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(255,255,255);
+  doc.text("LANÇAMENTO DE NOTAS — Turma: "+activeTurma,M,8.5);
+  doc.setFontSize(9);doc.setTextColor(...MUTED);
+  doc.text("Gerado em "+new Date().toLocaleDateString("pt-BR"),PW-M,8.5,{align:"right"});
+  let y=20;
+
+  function drawHeader(){
+    const hdrs=["Aluno / Grupo","Tema","Entrega Preliminar\n(até 10pts)","Entrega Final\n(até 20pts)","Apresentação Final\n(até 20pts)","TOTAL\n(50pts)"];
+    doc.setFillColor(30,35,60);doc.rect(M,y,PW-M*2,10,"F");
+    doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(...WHITE);
+    let x=M;hdrs.forEach((h,i)=>{doc.text(h,x+2,y+4.5,{maxWidth:COLS[i]-3});x+=COLS[i];});y+=10;
+  }
+  function drawRow(cells,isGrupo,nota){
+    if(y>PH-20){doc.addPage();doc.setFillColor(...DARK);doc.rect(0,0,PW,PH,"F");y=14;drawHeader();}
+    doc.setFillColor(...(isGrupo?[35,40,60]:[21,25,39]));doc.rect(M,y,PW-M*2,ROW,"F");
+    doc.setDrawColor(46,51,80);doc.rect(M,y,PW-M*2,ROW,"S");
+    doc.setFont("helvetica",isGrupo?"bold":"normal");doc.setFontSize(8);
+    let x=M;
+    cells.forEach((cell,i)=>{
+      let color=WHITE;
+      if(i===5&&nota!=null) color=nota>=45?GREEN:nota>=25?ORANGE:RED;
+      doc.setTextColor(...color);doc.text(String(cell??"—"),x+2,y+5.2,{maxWidth:COLS[i]-3});x+=COLS[i];
+    });y+=ROW;
+  }
+  drawHeader();
+  for(const [,g] of grupos){
+    const n=g.notas||{},ep=n.entrega_preliminar!=null?n.entrega_preliminar:"",ef=n.entrega_final!=null?n.entrega_final:"",af=n.apresentacao_final!=null?n.apresentacao_final:"";
+    const has=ep!==""||ef!==""||af!=="";
+    const total=has?(Number(ep)||0)+(Number(ef)||0)+(Number(af)||0):null;
+    drawRow([`📁 ${g.nome}`,g.tema||"—",ep!==""?ep+"pts":"—",ef!==""?ef+"pts":"—",af!==""?af+"pts":"—",has?total+"/50":"—"],true,total);
+    const alunos=g.alunos||[];
+    if(!alunos.length) drawRow(["  (sem alunos)","","","","",""],false,null);
+    else alunos.forEach(a=>drawRow([`  ${a}${g.representante===a?" 👑":""}`,g.tema||"—",ep!==""?ep+"pts":"—",ef!==""?ef+"pts":"—",af!==""?af+"pts":"—",has?total+"/50":"—"],false,total));
+    y+=2;
+  }
+  doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(...MUTED);
+  doc.text("Grupos de Projeto — lançamento de notas",M,PH-6);
+  doc.save(`notas-${activeTurma.replace(/\s/g,"_")}.pdf`);
+  toast("PDF exportado!");
+}
+
+// ── Student ───────────────────────────────────────────────────────────────────
+function renderStudentTurmas(){
+  const sel=document.getElementById("student-turma");
+  if(fixedTurma){sel.value=fixedTurma;return;}
+  const prev=sel.value;
+  sel.innerHTML=`<option value="">Selecione a turma…</option>`;
+  for(const nome of Object.keys(DB.turmas)) sel.innerHTML+=`<option value="${esc(nome)}"${prev===nome?" selected":""}>${esc(nome)}</option>`;
+}
+
+function getCurrentTurma(){
+  return fixedTurma || document.getElementById("student-turma").value;
+}
+
+function renderStudentGrupos(){
+  const turma=getCurrentTurma();
+  const container=document.getElementById("student-grupos");
+  document.getElementById("already-in").style.display="none";
+  if(!turma||!DB.turmas[turma]){container.innerHTML="";return;}
+  const grupos=DB.turmas[turma].grupos||{};
+  if(!Object.keys(grupos).length){container.innerHTML=`<p style="color:var(--muted);font-size:13px;">Nenhum grupo criado ainda.</p>`;return;}
+  let html=`<div style="display:flex;flex-direction:column;gap:10px;">`;
+  for(const [gid,g] of Object.entries(grupos)){
+    const n=(g.alunos||[]).length,cheio=g.limite>0&&n>=g.limite;
+    const pct=g.limite?Math.min(100,n/g.limite*100):0;
+    const cor=cheio?"var(--red)":pct>70?"var(--orange)":"var(--green)";
+    html+=`<div class="grupo-item${cheio?" full":""}">
+      <div class="grupo-top">
+        <div><b style="font-size:15px;">${esc(g.nome)}</b>${g.tema?`<p style="color:var(--muted);font-size:12px;margin-top:2px;">📚 ${esc(g.tema)}</p>`:""}</div>
+        ${cheio
+          ?`<span class="tag" style="background:rgba(248,113,113,.13);color:var(--red);border:1px solid rgba(248,113,113,.27);">Cheio</span>`
+          :`<span class="tag" style="background:rgba(52,211,153,.13);color:var(--green);border:1px solid rgba(52,211,153,.27);">${g.limite?`${n}/${g.limite} vagas`:`${n} aluno${n!==1?"s":""}`}</span>`}
+      </div>
+      ${g.limite>0?`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:11px;color:var(--muted);">VAGAS</span><span style="font-size:12px;color:${cor};font-weight:600;">${n}/${g.limite}${cheio?" • CHEIO":""}</span></div><div class="vagas-track"><div class="vagas-fill" style="width:${pct}%;background:${cor};"></div></div></div>`:""}
+      <button class="btn btn-sm ${cheio?"btn-ghost":"btn-success"}" ${cheio?"disabled":""} onclick="joinGrupo('${gid}','${esc(g.nome).replace(/'/g,"\\'")}')">
+        ${cheio?"Grupo cheio":"Entrar neste grupo"}
+      </button>
+    </div>`;
+  }
+  html+="</div>";container.innerHTML=html;
+}
+
+function joinGrupo(gid,gNome){
+  fbGet().then(fresh=>{
+    if(fresh) DB=fresh;
+    const name=document.getElementById("student-name").value.trim();
+    if(!name){alert("Digite seu nome antes de entrar em um grupo.");return;}
+    const turma=getCurrentTurma();
+    if(!turma){alert("Selecione sua turma.");return;}
+    const alreadyEl=document.getElementById("already-in");
+    for(const [,g] of Object.entries(DB.turmas[turma]?.grupos||{})){
+      if((g.alunos||[]).find(a=>a.toLowerCase()===name.toLowerCase())){
+        alreadyEl.innerHTML=`⚠️ Você já está no grupo <b>${esc(g.nome)}</b> desta turma.`;
+        alreadyEl.style.display="block";return;
+      }
+    }
+    const g=DB.turmas[turma]?.grupos?.[gid];
+    if(!g){alert("Grupo não encontrado.");return;}
+    if(g.limite&&(g.alunos||[]).length>=g.limite){alert("Este grupo está cheio.");return;}
+    if(!g.alunos)g.alunos=[];
+    g.alunos.push(name);
+    fbSet(DB).then(()=>{
+      document.getElementById("success-msg").innerHTML=`<b style="color:var(--text);">${esc(name)}</b>, você entrou no grupo<br><span style="color:var(--green);font-weight:700;font-size:20px;">${esc(gNome)}</span>`;
+      showScreen("success-screen");
+    }).catch(e=>alert("Erro ao salvar: "+e.message));
+  }).catch(()=>{
+    const name=document.getElementById("student-name").value.trim();
+    const turma=getCurrentTurma();
+    const g=DB.turmas[turma]?.grupos?.[gid];
+    if(!g)return;
+    if(!g.alunos)g.alunos=[];
+    g.alunos.push(name);
+    fbSet(DB).then(()=>{
+      document.getElementById("success-msg").innerHTML=`<b style="color:var(--text);">${esc(name)}</b>, você entrou no grupo<br><span style="color:var(--green);font-weight:700;font-size:20px;">${esc(gNome)}</span>`;
+      showScreen("success-screen");
+    });
+  });
+}
+
+function goBackToStudent(){
+  if(fixedTurma){
+    // stay on same turma
+    resetStudentForm();
+    openStudentForTurma(fixedTurma);
+  } else {
+    fixedTurma=null;
+    resetStudentForm();
+    renderStudentTurmas();
+    showScreen("student-screen");
+  }
+}
+
+function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+
+init();
+</script>
+</body>
+</html>
