@@ -1,2 +1,5 @@
 backup/
 .DS_Store
+node_modules/
+package-lock.json
+firestore-debug.log

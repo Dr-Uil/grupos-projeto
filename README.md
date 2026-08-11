@@ -64,3 +64,17 @@ python3 -m http.server 8080   # http://localhost:8080
 ```
 
 `localhost` já é domínio autorizado no Firebase Authentication por padrão.
+
+## Testes das regras de segurança
+
+46 testes cobrem as garantias listadas acima, rodando contra o emulador do
+Firestore — nenhum dado de produção é tocado.
+
+```bash
+npm install
+npm run test:rules     # exige JDK 11+
+```
+
+Rode isso sempre que alterar `firestore.rules`. A suíte cobre, entre outros
+casos, autoaprovação, acesso cruzado entre professores, aluno tentando remover
+colegas ou editar notas, estouro do limite de vagas e matrícula repetida.

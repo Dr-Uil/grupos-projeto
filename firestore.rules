@@ -30,11 +30,13 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Atenção: em sessão anônima o token não tem `email`, e ler uma propriedade
+    // inexistente é erro de avaliação (não `null`) — daí o uso de get() com
+    // valor padrão.
     function isAdmin() {
       return isSignedIn()
-        && request.auth.token.email != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.lower() in adminEmails();
+        && request.auth.token.get('email_verified', false) == true
+        && request.auth.token.get('email', '').lower() in adminEmails();
     }
 
     function profDoc() {
@@ -108,15 +110,19 @@ service cloud.firestore {
           return turmaData().get('inscricoesAbertas', true) == true;
         }
         // O aluno só pode acrescentar a si mesmo ao array `alunos`:
-        // nenhum outro campo muda, o array cresce exatamente 1 e os que já
-        // estavam continuam lá (impede remover ou substituir colegas).
+        // nenhum outro campo muda, o array cresce exatamente 1 e todos os que
+        // já estavam continuam lá (impede remover ou substituir colegas).
+        //
+        // A checagem de "continuam lá" usa conjuntos de propósito: a fatia
+        // `depois[0:antes.size()]` falha na avaliação quando o grupo está
+        // vazio, o que bloquearia a entrada no primeiro grupo vago.
         function somenteAcrescentaAluno() {
           let antes = resource.data.get('alunos', []);
           let depois = request.resource.data.get('alunos', []);
           let limite = resource.data.get('limite', 0);
           return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['alunos'])
             && depois.size() == antes.size() + 1
-            && depois[0:antes.size()] == antes
+            && depois.toSet().hasAll(antes.toSet())
             && (limite == 0 || depois.size() <= limite);
         }
 
