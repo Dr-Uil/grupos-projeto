@@ -2,8 +2,13 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0f1117"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="description" content="Plataforma de organização de grupos de projeto por turma."/>
   <title>Grupos de Projeto</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -14,18 +19,23 @@
       --bg:#0f1117; --surface:#1a1d27; --card:#21253a; --border:#2e3350;
       --accent:#4f8ef7; --accent2:#a78bfa; --green:#34d399; --red:#f87171;
       --yellow:#fbbf24; --orange:#fb923c; --text:#e8eaf6; --muted:#7b82a0;
+      --header-h:60px;
     }
-    body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; }
-    h1,h2,h3,h4 { font-family:'Syne',sans-serif; }
+    html { -webkit-text-size-adjust:100%; }
+    body {
+      background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif;
+      min-height:100vh; min-height:100dvh; overflow-x:hidden;
+    }
+    h1,h2,h3,h4 { font-family:'Syne',sans-serif; line-height:1.25; }
     input,select,textarea {
       font-family:'DM Sans',sans-serif; background:var(--bg); border:1.5px solid var(--border);
       color:var(--text); border-radius:8px; padding:10px 14px; font-size:14px;
-      width:100%; outline:none; transition:border-color .2s;
+      width:100%; outline:none; transition:border-color .2s; max-width:100%;
     }
-    input:focus,select:focus { border-color:var(--accent); }
+    input:focus,select:focus,textarea:focus { border-color:var(--accent); }
     input[type=number] { -moz-appearance:textfield; }
     button { cursor:pointer; font-family:'DM Sans',sans-serif; }
-    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar { width:6px; height:6px; }
     ::-webkit-scrollbar-track { background:var(--bg); }
     ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
     .fade-in { animation:fadeIn .35s ease; }
@@ -33,12 +43,16 @@
     @keyframes spin { to{transform:rotate(360deg)} }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-    .screen { display:none; min-height:100vh; }
+    .screen { display:none; min-height:100vh; min-height:100dvh; }
     .screen.active { display:flex; }
     .center { align-items:center; justify-content:center; padding:20px; }
     .col { flex-direction:column; }
     .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; }
-    .btn { border:none; border-radius:8px; font-weight:500; transition:filter .18s; display:inline-flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap; }
+    .btn {
+      border:none; border-radius:8px; font-weight:500; transition:filter .18s;
+      display:inline-flex; align-items:center; justify-content:center; gap:6px;
+      cursor:pointer; white-space:nowrap; touch-action:manipulation;
+    }
     .btn:hover:not(:disabled) { filter:brightness(1.15); }
     .btn:disabled { opacity:.5; cursor:not-allowed; }
     .btn-primary { background:var(--accent); color:#fff; }
@@ -47,95 +61,151 @@
     .btn-danger  { background:var(--red); color:#fff; }
     .btn-success { background:var(--green); color:#0f1117; }
     .btn-orange  { background:var(--orange); color:#fff; }
-    .btn-sm  { padding:6px 12px; font-size:13px; }
-    .btn-md  { padding:10px 18px; font-size:14px; }
-    .btn-lg  { padding:13px 28px; font-size:16px; width:100%; justify-content:center; }
+    .btn-sm  { padding:8px 12px; font-size:13px; min-height:38px; }
+    .btn-md  { padding:10px 18px; font-size:14px; min-height:42px; }
+    .btn-lg  { padding:13px 28px; font-size:16px; width:100%; min-height:48px; }
     .tag { border-radius:6px; padding:2px 8px; font-size:12px; font-weight:500; display:inline-block; }
     .spinner { border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
     .modal-overlay { position:fixed; inset:0; background:#000b; display:flex; align-items:center; justify-content:center; z-index:999; padding:16px; }
-    .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:28px; width:100%; max-width:480px; max-height:92vh; overflow-y:auto; }
-    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
-    .modal-close { background:none; border:none; color:var(--muted); font-size:22px; line-height:1; }
+    .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; width:100%; max-width:480px; max-height:88vh; max-height:88dvh; overflow-y:auto; }
+    .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:10px; }
+    .modal-close { background:none; border:none; color:var(--muted); font-size:24px; line-height:1; width:40px; height:40px; flex-shrink:0; }
     .vagas-track { background:var(--border); border-radius:4px; height:5px; overflow:hidden; }
     .vagas-fill { height:100%; border-radius:4px; transition:width .4s; }
+
     #admin-screen { flex-direction:column; }
-    .admin-header { background:var(--surface); border-bottom:1px solid var(--border); padding:14px 24px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .admin-body { display:flex; flex:1; overflow:hidden; min-height:0; }
-    .sidebar { width:230px; background:var(--surface); border-right:1px solid var(--border); padding:16px; overflow-y:auto; flex-shrink:0; }
-    .main-content { flex:1; padding:24px; overflow-y:auto; }
-    .grupos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; }
+    .admin-header {
+      background:var(--surface); border-bottom:1px solid var(--border);
+      padding:10px 16px; display:flex; align-items:center; justify-content:space-between;
+      gap:10px; flex-wrap:wrap; flex-shrink:0;
+    }
+    .admin-body { display:flex; flex:1; overflow:hidden; min-height:0; position:relative; }
+    .sidebar { width:240px; background:var(--surface); border-right:1px solid var(--border); padding:16px; overflow-y:auto; flex-shrink:0; }
+    .main-content { flex:1; padding:20px; overflow-y:auto; -webkit-overflow-scrolling:touch; min-width:0; }
+    .btn-menu { display:none; }
+    .drawer-overlay { display:none; position:fixed; inset:0; background:#000a; z-index:55; }
+    .drawer-overlay.open { display:block; }
+
+    .grupos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr)); gap:16px; }
     .grupo-card { display:flex; flex-direction:column; gap:14px; }
-    .alunos-list { display:flex; flex-direction:column; gap:4px; max-height:160px; overflow-y:auto; }
-    .aluno-item { display:flex; align-items:center; justify-content:space-between; background:var(--bg); padding:5px 10px; border-radius:6px; font-size:13px; }
-    .home-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:32px; width:220px; cursor:pointer; transition:all .2s; text-align:center; }
+    .alunos-list { display:flex; flex-direction:column; gap:4px; max-height:190px; overflow-y:auto; }
+    .aluno-item { display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--bg); padding:6px 6px 6px 10px; border-radius:6px; font-size:13px; }
+    .aluno-item .nome { overflow:hidden; text-overflow:ellipsis; }
+    .aluno-item .mat { color:var(--muted); font-size:11px; }
+    .home-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:28px 24px; width:220px; max-width:100%; cursor:pointer; transition:all .2s; text-align:center; }
     .home-card:hover { transform:translateY(-3px); }
     .blob { position:absolute; border-radius:50%; pointer-events:none; }
     .live-dot { width:8px; height:8px; border-radius:50%; background:var(--green); display:inline-block; animation:pulse 2s infinite; }
     .label { font-size:11px; font-weight:700; letter-spacing:1px; color:var(--muted); text-transform:uppercase; display:block; margin-bottom:6px; }
     .input-row { display:flex; gap:6px; }
-    .add-btn { background:var(--accent); border:none; color:#fff; border-radius:8px; padding:0 12px; cursor:pointer; flex-shrink:0; font-size:18px; }
+    .add-btn { background:var(--accent); border:none; color:#fff; border-radius:8px; padding:0 14px; cursor:pointer; flex-shrink:0; font-size:18px; min-width:44px; min-height:40px; }
     .form-group { display:flex; flex-direction:column; gap:4px; }
     .form-group label { font-size:12px; color:var(--muted); }
-    .toast { position:fixed; top:14px; right:14px; color:#fff; padding:10px 16px; border-radius:8px; font-size:13px; z-index:9999; display:none; max-width:320px; }
+    .toast { position:fixed; top:14px; left:50%; transform:translateX(-50%); color:#fff; padding:11px 18px; border-radius:8px; font-size:13px; z-index:9999; display:none; max-width:min(92vw,420px); text-align:center; box-shadow:0 6px 24px #0007; }
     .section-title { font-size:11px; font-weight:700; letter-spacing:1px; color:var(--muted); margin-bottom:12px; text-transform:uppercase; }
-    .turma-item { display:flex; align-items:center; justify-content:space-between; padding:9px 12px; border-radius:8px; cursor:pointer; margin-bottom:4px; border:1px solid transparent; transition:all .15s; }
+    .turma-item { display:flex; align-items:center; justify-content:space-between; gap:6px; padding:11px 12px; border-radius:8px; cursor:pointer; margin-bottom:4px; border:1px solid transparent; transition:all .15s; }
     .turma-item:hover { background:rgba(79,142,247,.1); }
     .turma-item.active { background:rgba(79,142,247,.13); border-color:rgba(79,142,247,.35); }
-    .turma-name { font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .remove-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; flex-shrink:0; line-height:1; }
-    .remove-btn:hover { color:var(--red); }
-    .empty-state { color:var(--muted); text-align:center; padding:48px; }
-    .grupo-header { display:flex; justify-content:space-between; align-items:flex-start; }
+    .turma-name { font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+    .remove-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; flex-shrink:0; line-height:1; width:32px; height:32px; border-radius:6px; }
+    .remove-btn:hover { color:var(--red); background:rgba(248,113,113,.1); }
+    .empty-state { color:var(--muted); text-align:center; padding:40px 20px; }
+    .grupo-header { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
     .inline-edit { display:flex; gap:6px; align-items:center; }
-    .ok-btn { background:var(--green); border:none; color:#0f1117; border-radius:8px; padding:0 12px; cursor:pointer; flex-shrink:0; font-weight:600; font-size:12px; height:36px; }
+    .ok-btn { background:var(--green); border:none; color:#0f1117; border-radius:8px; padding:0 14px; cursor:pointer; flex-shrink:0; font-weight:600; font-size:12px; min-height:40px; }
     .clickable-field { display:flex; align-items:center; gap:8px; cursor:pointer; }
     .edit-hint { font-size:11px; color:var(--accent); opacity:.5; transition:opacity .2s; }
     .clickable-field:hover .edit-hint { opacity:1; }
     .grupo-item { background:var(--bg); border:1.5px solid var(--border); border-radius:10px; padding:14px; }
     .grupo-item.full { border-color:rgba(248,113,113,.4); opacity:.75; }
-    .grupo-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
-    .admin-tabs { display:flex; gap:4px; background:var(--surface); border-radius:10px; padding:4px; width:fit-content; }
-    .admin-tab { padding:8px 18px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; border:none; background:transparent; color:var(--muted); transition:all .2s; }
+    .grupo-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; }
+    .admin-tabs { display:flex; gap:4px; background:var(--surface); border-radius:10px; padding:4px; width:fit-content; max-width:100%; overflow-x:auto; scrollbar-width:none; }
+    .admin-tabs::-webkit-scrollbar { display:none; }
+    .admin-tab { padding:9px 16px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; border:none; background:transparent; color:var(--muted); transition:all .2s; white-space:nowrap; }
     .admin-tab.active { background:var(--accent); color:#fff; }
-    .grades-table { width:100%; border-collapse:collapse; font-size:13px; }
-    .grades-table th { background:var(--surface); color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.5px; padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); position:sticky; top:0; }
-    .grades-table td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+
+    .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:10px; border:1px solid var(--border); }
+    .grades-table { width:100%; border-collapse:separate; border-spacing:0; font-size:13px; min-width:560px; }
+    .grades-table th { background:var(--surface); color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.5px; padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
+    .grades-table td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:middle; background:var(--card); }
     .grades-table tr:last-child td { border-bottom:none; }
-    .grades-table tr:hover td { background:rgba(79,142,247,.04); }
-    .grade-input { width:70px; padding:5px 8px; font-size:13px; text-align:center; }
+    .grades-table th:first-child, .grades-table td:first-child {
+      position:sticky; left:0; z-index:2; min-width:150px;
+      box-shadow:1px 0 0 var(--border);
+    }
+    .grades-table th:first-child { background:var(--surface); z-index:3; }
+    .grade-input { width:74px; padding:6px 8px; font-size:13px; text-align:center; }
     .total-badge { font-weight:700; font-size:14px; }
-    .group-section { margin-bottom:28px; }
+    .group-section { margin-bottom:26px; }
     .group-section-title { font-size:15px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-    .export-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:20px; padding:16px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
-    /* QR links panel */
-    .qr-turma-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+    .export-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:20px; padding:14px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+    .qr-turma-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px; }
     .qr-turma-card .link-box { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:12px; color:var(--muted); word-break:break-all; font-family:monospace; }
-    .qr-mini { background:#fff; border-radius:8px; padding:6px; display:inline-block; }
+    .qr-mini { background:#fff; border-radius:8px; padding:6px; display:inline-block; line-height:0; }
+    .switch-row { display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px 14px; flex-wrap:wrap; }
+
+    /* ── Tablet ─────────────────────────────────────────────────────────────── */
+    @media (max-width:900px) {
+      .admin-body { overflow:visible; }
+      .btn-menu { display:inline-flex; }
+      .sidebar {
+        position:fixed; top:0; bottom:0; left:0; z-index:60; width:84%; max-width:310px;
+        transform:translateX(-100%); transition:transform .25s ease; padding-top:20px;
+        box-shadow:4px 0 24px #0008;
+      }
+      .sidebar.open { transform:translateX(0); }
+      .main-content { padding:16px; overflow:visible; }
+      .home-card { width:100%; max-width:340px; }
+    }
+    /* ── Celular ────────────────────────────────────────────────────────────── */
+    @media (max-width:600px) {
+      .admin-header { padding:10px 12px; gap:8px; }
+      .admin-header h2 { font-size:16px; }
+      .main-content { padding:14px 12px; }
+      .card { padding:16px; }
+      .modal-box { padding:20px 16px; border-radius:14px; }
+      .export-bar { flex-direction:column; align-items:stretch; }
+      .export-bar .btn { width:100%; }
+      .admin-tabs { width:100%; }
+      .admin-tab { flex:1; padding:10px 12px; text-align:center; }
+      .grupos-grid { grid-template-columns:1fr; }
+      .empty-state { padding:32px 12px; }
+      .screen.center { padding:16px 14px; }
+    }
+    /* Evita o zoom automático do iOS ao focar um campo */
+    @media (max-width:768px) {
+      input, select, textarea { font-size:16px; padding:11px 14px; }
+      .grade-input { font-size:16px; width:78px; }
+    }
+    @media print {
+      body > *:not(#print-area) { display:none !important; }
+      #print-area { display:block !important; }
+    }
   </style>
 </head>
 <body>
 <div class="toast" id="toast"></div>
 
-<!-- HOME -->
-<div id="home-screen" class="screen active center col" style="position:relative;overflow:hidden;align-items:center;justify-content:center;">
+<!-- ── HOME ─────────────────────────────────────────────────────────────────── -->
+<div id="home-screen" class="screen active center col" style="position:relative;overflow:hidden;">
   <div class="blob" style="width:400px;height:400px;background:radial-gradient(circle,rgba(79,142,247,.1) 0%,transparent 70%);top:-100px;left:-100px;"></div>
   <div class="blob" style="width:300px;height:300px;background:radial-gradient(circle,rgba(167,139,250,.1) 0%,transparent 70%);bottom:-80px;right:-80px;"></div>
-  <div class="fade-in" style="text-align:center;position:relative;z-index:1;">
-    <div style="font-size:56px;margin-bottom:16px;">📋</div>
-    <h1 style="font-size:34px;background:linear-gradient(135deg,#e8eaf6,#4f8ef7);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;">Grupos de Projeto</h1>
-    <p style="color:var(--muted);font-size:16px;margin-bottom:12px;">Plataforma de organização de grupos escolares</p>
-    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:40px;">
-      <span class="live-dot"></span>
-      <span style="font-size:12px;color:var(--green);">Conectado ao Firebase</span>
+  <div class="fade-in" style="text-align:center;position:relative;z-index:1;width:100%;max-width:560px;">
+    <div style="font-size:52px;margin-bottom:14px;">📋</div>
+    <h1 style="font-size:clamp(26px,7vw,34px);background:linear-gradient(135deg,#e8eaf6,#4f8ef7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;">Grupos de Projeto</h1>
+    <p style="color:var(--muted);font-size:15px;margin-bottom:12px;">Plataforma de organização de grupos escolares</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:32px;">
+      <span class="live-dot" id="home-dot"></span>
+      <span style="font-size:12px;color:var(--green);" id="home-status">Conectado ao Firebase</span>
     </div>
-    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
-      <div class="home-card" id="btn-student" onmouseenter="this.style.borderColor='var(--green)'" onmouseleave="this.style.borderColor='var(--border)'">
-        <div style="font-size:40px;margin-bottom:12px;">🎓</div>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <div class="home-card" id="btn-student">
+        <div style="font-size:36px;margin-bottom:10px;">🎓</div>
         <h3 style="font-size:18px;margin-bottom:6px;">Sou Aluno</h3>
         <p style="color:var(--muted);font-size:13px;">Cadastre-se em um grupo de projeto</p>
       </div>
-      <div class="home-card" id="btn-teacher" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
-        <div style="font-size:40px;margin-bottom:12px;">👩‍🏫</div>
+      <div class="home-card" id="btn-teacher">
+        <div style="font-size:36px;margin-bottom:10px;">👩‍🏫</div>
         <h3 style="font-size:18px;margin-bottom:6px;">Sou Professor</h3>
         <p style="color:var(--muted);font-size:13px;">Gerencie turmas, grupos e alunos</p>
       </div>
@@ -143,107 +213,104 @@
   </div>
 </div>
 
-<!-- LOADING -->
+<!-- ── LOADING ──────────────────────────────────────────────────────────────── -->
 <div id="loading-screen" class="screen center col" style="gap:16px;">
   <div class="spinner" style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);"></div>
-  <p id="loading-msg" style="color:var(--muted);font-size:15px;">Conectando ao Firebase…</p>
+  <p id="loading-msg" style="color:var(--muted);font-size:15px;">Conectando…</p>
 </div>
 
-<!-- ERROR -->
-<div id="error-screen" class="screen center col" style="gap:16px;text-align:center;padding:24px;">
-  <div style="font-size:48px;">⚠️</div>
+<!-- ── ERRO ─────────────────────────────────────────────────────────────────── -->
+<div id="error-screen" class="screen center col" style="gap:16px;text-align:center;">
+  <div style="font-size:44px;">⚠️</div>
   <h2>Erro de conexão</h2>
-  <p style="color:var(--muted);max-width:440px;font-size:14px;">Verifique se as <b style="color:var(--text);">regras do Firestore</b> estão em modo de teste e tente novamente.</p>
-  <code id="error-msg" style="background:var(--card);padding:12px;border-radius:8px;font-size:12px;color:var(--red);max-width:440px;word-break:break-all;"></code>
-  <button class="btn btn-primary btn-md" onclick="location.reload()">↺ Tentar novamente</button>
+  <p style="color:var(--muted);max-width:440px;font-size:14px;">Não foi possível falar com o servidor. Verifique sua internet e tente novamente.</p>
+  <code id="error-msg" style="background:var(--card);padding:12px;border-radius:8px;font-size:12px;color:var(--red);max-width:440px;word-break:break-word;"></code>
+  <button class="btn btn-primary btn-md" id="btn-reload">↺ Tentar novamente</button>
 </div>
 
-<!-- LOGIN / SIGNUP -->
+<!-- ── LOGIN / CADASTRO ─────────────────────────────────────────────────────── -->
 <div id="login-screen" class="screen center col">
-  <div class="fade-in" style="width:100%;max-width:400px;">
-    <div style="text-align:center;margin-bottom:24px;">
-      <div style="font-size:40px;margin-bottom:8px;">🔐</div>
+  <div class="fade-in" style="width:100%;max-width:420px;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="font-size:38px;margin-bottom:8px;">🔐</div>
       <h2 style="font-size:22px;">Acesso do Professor</h2>
     </div>
-    <!-- auth tabs -->
     <div class="admin-tabs" style="margin:0 auto 18px;">
-      <button class="admin-tab active" id="auth-tab-login"  onclick="switchAuthTab('login')">Entrar</button>
-      <button class="admin-tab"        id="auth-tab-signup" onclick="switchAuthTab('signup')">Criar conta</button>
+      <button class="admin-tab active" id="auth-tab-login"  data-authtab="login">Entrar</button>
+      <button class="admin-tab"        id="auth-tab-signup" data-authtab="signup">Criar conta</button>
     </div>
 
-    <!-- LOGIN panel -->
     <div class="card" id="auth-panel-login">
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <div class="form-group"><label>Nome de usuário</label><input id="login-user" placeholder="Ex: prof.silva" onkeydown="if(event.key==='Enter')doLogin()"/></div>
-        <div class="form-group"><label>Senha</label><input type="password" id="login-pw" placeholder="Senha" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="login-email" autocomplete="email" inputmode="email" placeholder="voce@exemplo.com"/></div>
+        <div class="form-group"><label>Senha</label><input type="password" id="login-pw" autocomplete="current-password" placeholder="Sua senha"/></div>
         <p id="login-error" style="color:var(--red);font-size:13px;display:none;"></p>
-        <button class="btn btn-primary btn-lg" onclick="doLogin()">Entrar</button>
-        <button class="btn btn-ghost btn-lg" onclick="showScreen('home-screen')">← Voltar</button>
+        <button class="btn btn-primary btn-lg" id="btn-do-login">Entrar</button>
+        <button class="btn btn-ghost btn-sm" id="btn-forgot" style="background:none;border:none;color:var(--muted);text-decoration:underline;">Esqueci minha senha</button>
+        <button class="btn btn-ghost btn-lg" data-goto="home-screen">← Voltar</button>
       </div>
     </div>
 
-    <!-- SIGNUP panel -->
     <div class="card" id="auth-panel-signup" style="display:none;">
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <div class="form-group"><label>Nome de usuário</label><input id="signup-user" placeholder="Ex: prof.silva"/></div>
-        <div class="form-group"><label>Senha</label><input type="password" id="signup-pw" placeholder="Crie uma senha"/></div>
-        <div class="form-group"><label>Confirmar senha</label><input type="password" id="signup-pw2" placeholder="Repita a senha"/></div>
+        <div class="form-group"><label>Nome completo</label><input id="signup-nome" autocomplete="name" placeholder="Ex: Maria Silva"/></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="signup-email" autocomplete="email" inputmode="email" placeholder="voce@exemplo.com"/></div>
+        <div class="form-group"><label>Senha</label><input type="password" id="signup-pw" autocomplete="new-password" placeholder="Mínimo de 8 caracteres"/></div>
+        <div class="form-group"><label>Confirmar senha</label><input type="password" id="signup-pw2" autocomplete="new-password" placeholder="Repita a senha"/></div>
         <p id="signup-msg" style="font-size:13px;display:none;"></p>
-        <button class="btn btn-primary btn-lg" onclick="doSignup()">Criar conta</button>
-        <button class="btn btn-ghost btn-lg" onclick="showScreen('home-screen')">← Voltar</button>
-        <p style="color:var(--muted);font-size:12px;text-align:center;">Sua conta precisará ser aprovada pelo administrador antes do primeiro acesso.</p>
-      </div>
-    </div>
-
-    <p style="color:var(--muted);font-size:11px;text-align:center;margin-top:16px;">
-      <a href="#" onclick="showMasterLogin();return false;" style="color:var(--muted);text-decoration:underline;">Acesso do administrador</a>
-    </p>
-  </div>
-</div>
-
-<!-- MASTER ADMIN LOGIN -->
-<div id="master-login-screen" class="screen center col">
-  <div class="fade-in" style="width:100%;max-width:380px;">
-    <div style="text-align:center;margin-bottom:32px;">
-      <div style="font-size:40px;margin-bottom:8px;">🛡️</div>
-      <h2 style="font-size:22px;">Administrador</h2>
-      <p style="color:var(--muted);margin-top:6px;font-size:14px;">Aprovar e gerenciar professores</p>
-    </div>
-    <div class="card">
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <input type="password" id="master-pw" placeholder="Senha do administrador" onkeydown="if(event.key==='Enter')doMasterLogin()"/>
-        <p id="master-error" style="color:var(--red);font-size:13px;display:none;"></p>
-        <button class="btn btn-primary btn-lg" onclick="doMasterLogin()">Entrar</button>
-        <button class="btn btn-ghost btn-lg" onclick="showScreen('login-screen')">← Voltar</button>
+        <button class="btn btn-primary btn-lg" id="btn-do-signup">Criar conta</button>
+        <button class="btn btn-ghost btn-lg" data-goto="home-screen">← Voltar</button>
+        <p style="color:var(--muted);font-size:12px;text-align:center;line-height:1.5;">Sua conta precisa ser aprovada pelo administrador antes do primeiro acesso.</p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- MASTER ADMIN PANEL -->
-<div id="master-screen" class="screen center col" style="align-items:stretch;">
-  <div class="fade-in" style="width:100%;max-width:720px;margin:0 auto;padding:24px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+<!-- ── AGUARDANDO APROVAÇÃO ─────────────────────────────────────────────────── -->
+<div id="pending-screen" class="screen center col">
+  <div class="fade-in" style="width:100%;max-width:440px;text-align:center;">
+    <div style="font-size:46px;margin-bottom:12px;">⏳</div>
+    <h2 style="font-size:22px;margin-bottom:10px;" id="pending-title">Conta aguardando aprovação</h2>
+    <p style="color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:8px;" id="pending-text"></p>
+    <span id="pending-email" hidden></span>
+    <div id="pending-verify" style="display:none;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:10px;padding:14px;font-size:13px;color:var(--yellow);margin:16px 0;line-height:1.5;">
+      Confirme seu e-mail clicando no link que enviamos.
+      <button class="btn btn-ghost btn-sm" id="btn-resend-verify" style="margin-top:10px;width:100%;">Reenviar e-mail de confirmação</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
+      <button class="btn btn-primary btn-md" id="btn-recheck">↻ Já fui aprovado, verificar</button>
+      <button class="btn btn-ghost btn-md" id="btn-pending-logout">Sair</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PAINEL DO ADMINISTRADOR ──────────────────────────────────────────────── -->
+<div id="master-screen" class="screen col" style="align-items:stretch;">
+  <div class="fade-in" style="width:100%;max-width:760px;margin:0 auto;padding:20px 16px 40px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px;">
       <div>
-        <h2 style="font-size:22px;">🛡️ Gerenciar Professores</h2>
+        <h2 style="font-size:21px;">🛡️ Gerenciar Professores</h2>
         <p style="color:var(--muted);font-size:13px;margin-top:4px;">Aprove ou remova contas de professores.</p>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="showScreen('home-screen')">← Sair</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" id="btn-master-to-panel">Meu painel →</button>
+        <button class="btn btn-ghost btn-sm" id="btn-master-logout">Sair</button>
+      </div>
     </div>
+    <div id="master-migracao" style="margin-bottom:22px;"></div>
     <div id="master-pending"></div>
-    <div id="master-approved" style="margin-top:24px;"></div>
+    <div id="master-approved" style="margin-top:22px;"></div>
   </div>
 </div>
 
-<!-- STUDENT (turma fixa via URL ou seleção) -->
+<!-- ── ALUNO ────────────────────────────────────────────────────────────────── -->
 <div id="student-screen" class="screen center col">
-  <div class="fade-in" style="width:100%;max-width:500px;">
-    <div style="text-align:center;margin-bottom:28px;">
-      <div style="font-size:40px;margin-bottom:8px;">🎓</div>
-      <h2 style="font-size:24px;">Cadastro de Aluno</h2>
-      <!-- turma fixa badge -->
+  <div class="fade-in" style="width:100%;max-width:520px;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:38px;margin-bottom:8px;">🎓</div>
+      <h2 style="font-size:23px;">Cadastro de Aluno</h2>
       <div id="turma-badge" style="display:none;margin-top:10px;">
-        <span id="turma-badge-text" style="background:rgba(79,142,247,.15);color:var(--accent);border:1px solid rgba(79,142,247,.3);border-radius:20px;padding:5px 16px;font-size:14px;font-weight:600;"></span>
+        <span id="turma-badge-text" style="background:rgba(79,142,247,.15);color:var(--accent);border:1px solid rgba(79,142,247,.3);border-radius:20px;padding:5px 16px;font-size:14px;font-weight:600;display:inline-block;"></span>
       </div>
       <p id="turma-hint" style="color:var(--muted);margin-top:6px;font-size:14px;">Inscreva-se em um grupo do seu projeto</p>
     </div>
@@ -251,44 +318,47 @@
       <div style="display:flex;flex-direction:column;gap:16px;">
         <div class="form-group">
           <label>Seu nome completo</label>
-          <input id="student-name" placeholder="Ex: Maria da Silva"/>
+          <input id="student-name" autocomplete="name" placeholder="Ex: Maria da Silva"/>
         </div>
-        <!-- select turma — oculto quando turma vem da URL -->
+        <div class="form-group">
+          <label>Sua matrícula</label>
+          <input id="student-mat" inputmode="text" autocomplete="off" placeholder="Ex: 2023102345"/>
+        </div>
         <div class="form-group" id="turma-select-wrap">
           <label>Turma</label>
-          <select id="student-turma" onchange="renderStudentGrupos()">
+          <select id="student-turma">
             <option value="">Selecione a turma…</option>
           </select>
         </div>
-        <div id="already-in" style="background:rgba(251,191,36,.13);border:1px solid rgba(251,191,36,.27);border-radius:8px;padding:12px;font-size:13px;color:var(--yellow);display:none;"></div>
+        <div id="already-in" style="background:rgba(251,191,36,.13);border:1px solid rgba(251,191,36,.27);border-radius:8px;padding:12px;font-size:13px;color:var(--yellow);display:none;line-height:1.5;"></div>
         <div id="student-grupos"></div>
       </div>
     </div>
     <div style="text-align:center;margin-top:16px;">
-      <button class="btn btn-ghost btn-sm" onclick="showScreen('home-screen')">← Voltar</button>
+      <button class="btn btn-ghost btn-sm" data-goto="home-screen">← Voltar</button>
     </div>
   </div>
 </div>
 
-<!-- SUCCESS -->
+<!-- ── SUCESSO ──────────────────────────────────────────────────────────────── -->
 <div id="success-screen" class="screen center col">
-  <div class="fade-in" style="text-align:center;max-width:400px;">
-    <div style="font-size:64px;margin-bottom:16px;">🎉</div>
-    <h2 style="font-size:24px;margin-bottom:8px;">Cadastro realizado!</h2>
+  <div class="fade-in" style="text-align:center;max-width:420px;">
+    <div style="font-size:60px;margin-bottom:16px;">🎉</div>
+    <h2 style="font-size:23px;margin-bottom:8px;">Cadastro realizado!</h2>
     <p id="success-msg" style="color:var(--muted);margin-bottom:24px;line-height:1.6;"></p>
-    <button class="btn btn-ghost btn-md" onclick="goBackToStudent()">Cadastrar outro aluno</button>
+    <button class="btn btn-ghost btn-md" id="btn-back-student">Cadastrar outro aluno</button>
   </div>
 </div>
 
-<!-- ADMIN -->
-<div id="admin-screen" class="screen" style="min-height:100vh;flex-direction:column;">
+<!-- ── PAINEL DO PROFESSOR ──────────────────────────────────────────────────── -->
+<div id="admin-screen" class="screen">
   <div class="admin-header">
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-      <button class="btn btn-ghost btn-sm" onclick="logoutProf()">← Sair</button>
-      <h2 style="font-size:18px;">Painel do Professor</h2>
-      <span id="prof-badge" style="background:rgba(79,142,247,.15);color:var(--accent);border:1px solid rgba(79,142,247,.3);border-radius:20px;padding:3px 12px;font-size:13px;font-weight:600;"></span>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0;">
+      <button class="btn btn-ghost btn-sm btn-menu" id="btn-menu" aria-label="Abrir turmas">☰</button>
+      <h2 style="font-size:17px;">Painel do Professor</h2>
+      <span id="prof-badge" style="background:rgba(79,142,247,.15);color:var(--accent);border:1px solid rgba(79,142,247,.3);border-radius:20px;padding:3px 12px;font-size:13px;font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <div id="save-indicator" style="display:none;align-items:center;gap:6px;">
-        <div class="spinner" style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);"></div>
+        <div class="spinner" style="width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--accent);"></div>
         <span style="color:var(--muted);font-size:12px;">Salvando…</span>
       </div>
       <div id="live-indicator" style="display:flex;align-items:center;gap:5px;">
@@ -296,70 +366,79 @@
         <span style="font-size:12px;color:var(--green);">Ao vivo</span>
       </div>
     </div>
-    <button class="btn btn-ghost btn-sm" onclick="showChangePw()">🔑 Alterar senha</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-ghost btn-sm" id="btn-admin-panel" style="display:none;">🛡️ Admin</button>
+      <button class="btn btn-ghost btn-sm" id="btn-reset-pw">🔑 Senha</button>
+      <button class="btn btn-ghost btn-sm" id="btn-logout">Sair</button>
+    </div>
   </div>
   <div class="admin-body">
-    <div class="sidebar">
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+    <div class="sidebar" id="sidebar">
       <div class="section-title">Turmas</div>
       <div id="turmas-list"></div>
       <div class="input-row" style="margin-top:12px;">
-        <input id="new-turma-input" placeholder="Nova turma…" style="font-size:13px;padding:7px 10px;" onkeydown="if(event.key==='Enter')addTurma()"/>
-        <button class="add-btn" onclick="addTurma()">+</button>
+        <input id="new-turma-input" placeholder="Nova turma…"/>
+        <button class="add-btn" id="btn-add-turma" aria-label="Criar turma">+</button>
       </div>
     </div>
     <div class="main-content">
-      <div id="no-turma" class="empty-state" style="margin-top:60px;">
-        <div style="font-size:48px;margin-bottom:12px;">👈</div>
+      <div id="no-turma" class="empty-state" style="margin-top:40px;">
+        <div style="font-size:44px;margin-bottom:12px;">📚</div>
         <p>Selecione ou crie uma turma para começar</p>
       </div>
       <div id="turma-content" style="display:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-          <h3 id="turma-title" style="font-size:20px;"></h3>
+          <h3 id="turma-title" style="font-size:19px;"></h3>
           <div class="admin-tabs">
-            <button class="admin-tab active" id="tab-grupos" onclick="switchTab('grupos')">👥 Grupos</button>
-            <button class="admin-tab" id="tab-qr"     onclick="switchTab('qr')">📱 QR / Link</button>
-            <button class="admin-tab" id="tab-notas"  onclick="switchTab('notas')">📊 Notas</button>
+            <button class="admin-tab active" id="tab-grupos" data-tab="grupos">👥 Grupos</button>
+            <button class="admin-tab" id="tab-qr"     data-tab="qr">📱 QR / Link</button>
+            <button class="admin-tab" id="tab-notas"  data-tab="notas">📊 Notas</button>
           </div>
         </div>
 
-        <!-- Tab Grupos -->
         <div id="panel-grupos">
           <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
-            <button class="btn btn-primary btn-sm" onclick="showAddGrupo()">+ Novo grupo</button>
+            <button class="btn btn-primary btn-sm" id="btn-show-addgrupo">+ Novo grupo</button>
           </div>
           <div id="grupos-grid" class="grupos-grid"></div>
           <div id="no-grupos" class="empty-state" style="display:none;">
-            <div style="font-size:40px;margin-bottom:10px;">📂</div>
+            <div style="font-size:38px;margin-bottom:10px;">📂</div>
             <p>Nenhum grupo criado. Clique em "+ Novo grupo".</p>
           </div>
         </div>
 
-        <!-- Tab QR / Link -->
         <div id="panel-qr" style="display:none;">
           <div class="qr-turma-card fade-in">
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="switch-row">
+              <div>
+                <b style="font-size:14px;" id="insc-status-label">Inscrições abertas</b>
+                <p style="color:var(--muted);font-size:12px;margin-top:2px;">Feche para impedir novas entradas de alunos.</p>
+              </div>
+              <button class="btn btn-sm" id="btn-toggle-insc">Fechar inscrições</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
               <div class="qr-mini" id="qr-turma-box"></div>
-              <div style="flex:1;min-width:220px;">
-                <p style="font-size:13px;color:var(--muted);margin-bottom:6px;">Link exclusivo desta turma. Apenas alunos com este link poderão se inscrever nos grupos.</p>
+              <div style="flex:1;min-width:210px;">
+                <p style="font-size:13px;color:var(--muted);margin-bottom:6px;">Link exclusivo desta turma. Apenas alunos com este link entram direto nela.</p>
                 <div class="link-box" id="qr-turma-url"></div>
               </div>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
-              <button class="btn btn-success btn-sm" onclick="downloadTurmaQR()">⬇ Baixar QR Code PNG</button>
-              <button class="btn btn-ghost btn-sm" onclick="copyTurmaUrl()">📋 Copiar link</button>
-              <button class="btn btn-purple btn-sm" onclick="printTurmaQR()">🖨️ Imprimir</button>
+              <button class="btn btn-success btn-sm" id="btn-qr-download">⬇ Baixar QR Code</button>
+              <button class="btn btn-ghost btn-sm" id="btn-qr-copy">📋 Copiar link</button>
+              <button class="btn btn-purple btn-sm" id="btn-qr-print">🖨️ Imprimir</button>
             </div>
-            <p style="font-size:11px;color:var(--muted);">💡 Distribua o QR Code ou o link somente para os alunos desta turma. O aluno já cai direto nela sem precisar escolher.</p>
+            <p style="font-size:11px;color:var(--muted);line-height:1.5;">💡 Distribua o QR Code ou o link somente para os alunos desta turma.</p>
           </div>
         </div>
 
-        <!-- Tab Notas -->
         <div id="panel-notas" style="display:none;">
           <div class="export-bar">
-            <span style="font-size:14px;font-weight:600;">Exportar lançamento de notas:</span>
-            <button class="btn btn-success btn-sm" onclick="exportXLSX()">📥 Excel (.xlsx)</button>
-            <button class="btn btn-orange btn-sm" onclick="exportPDF()">📄 PDF</button>
-            <span style="font-size:12px;color:var(--muted);">Notas salvas automaticamente.</span>
+            <span style="font-size:14px;font-weight:600;">Exportar notas:</span>
+            <button class="btn btn-success btn-sm" id="btn-export-xlsx">📥 Excel (.xlsx)</button>
+            <button class="btn btn-orange btn-sm" id="btn-export-pdf">📄 PDF</button>
+            <span style="font-size:12px;color:var(--muted);">Salvas automaticamente.</span>
           </div>
           <div id="notas-content"></div>
         </div>
@@ -368,875 +447,1312 @@
   </div>
 </div>
 
-<!-- MODAL: Add Grupo -->
+<!-- ── MODAIS ───────────────────────────────────────────────────────────────── -->
 <div id="modal-addgrupo" class="modal-overlay" style="display:none;">
   <div class="modal-box fade-in">
-    <div class="modal-header"><h3>Novo Grupo</h3><button class="modal-close" onclick="closeModal('modal-addgrupo')">×</button></div>
+    <div class="modal-header"><h3>Novo Grupo</h3><button class="modal-close" data-close="modal-addgrupo">×</button></div>
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="form-group"><label>Nome do grupo *</label><input id="new-grupo-nome" placeholder="Ex: Grupo A"/></div>
       <div class="form-group"><label>Tema (opcional)</label><input id="new-grupo-tema" placeholder="Ex: Energia Solar"/></div>
       <div class="form-group"><label>Limite de vagas (0 = sem limite)</label><input id="new-grupo-limite" type="number" min="0" value="0"/></div>
-      <button class="btn btn-primary btn-md" style="justify-content:center;" onclick="confirmAddGrupo()">Criar grupo</button>
+      <button class="btn btn-primary btn-md" id="btn-confirm-addgrupo">Criar grupo</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL: Change Password -->
-<div id="modal-pw" class="modal-overlay" style="display:none;">
+<div id="modal-aluno" class="modal-overlay" style="display:none;">
   <div class="modal-box fade-in">
-    <div class="modal-header"><h3>Alterar Senha</h3><button class="modal-close" onclick="closeModal('modal-pw')">×</button></div>
+    <div class="modal-header"><h3>Adicionar aluno</h3><button class="modal-close" data-close="modal-aluno">×</button></div>
     <div style="display:flex;flex-direction:column;gap:14px;">
-      <input type="password" id="new-pw-input" placeholder="Nova senha"/>
-      <button class="btn btn-primary btn-md" style="justify-content:center;" onclick="confirmChangePw()">Salvar senha</button>
+      <div class="form-group"><label>Nome completo *</label><input id="add-aluno-nome" placeholder="Ex: João Pereira"/></div>
+      <div class="form-group"><label>Matrícula (opcional)</label><input id="add-aluno-mat" placeholder="Ex: 2023102345"/></div>
+      <button class="btn btn-primary btn-md" id="btn-confirm-aluno">Adicionar</button>
     </div>
   </div>
 </div>
 
-<!-- Print helper (hidden) -->
 <div id="print-area" style="display:none;"></div>
-<style>
-@media print {
-  body > *:not(#print-area) { display:none !important; }
-  #print-area { display:block !important; }
-}
-</style>
 
-<script>
-// ── Firebase REST ─────────────────────────────────────────────────────────────
-const FB_PROJECT = "grupos-projeto";
-const FB_API_KEY = "AIzaSyC2vDmCS2yRtKtPSDjhJJVxG8j7wd9HEZo";
-const FB_BASE    = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
-const DOC_PATH   = "app/dados";
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signInAnonymously, signOut, sendEmailVerification, sendPasswordResetEmail, updateProfile
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection,
+  query, where, onSnapshot, writeBatch, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-function toFS(obj) {
-  if (obj===null||obj===undefined) return {nullValue:null};
-  if (typeof obj==="boolean") return {booleanValue:obj};
-  if (typeof obj==="number") return {integerValue:String(Math.round(obj))};
-  if (typeof obj==="string") return {stringValue:obj};
-  if (Array.isArray(obj)) return {arrayValue:{values:obj.length?obj.map(toFS):[]}};
-  if (typeof obj==="object") {
-    const fields={};
-    for(const [k,v] of Object.entries(obj)) fields[k]=toFS(v);
-    return {mapValue:{fields}};
-  }
-  return {stringValue:String(obj)};
-}
-function fromFS(val) {
-  if(!val) return null;
-  if("nullValue"    in val) return null;
-  if("booleanValue" in val) return val.booleanValue;
-  if("integerValue" in val) return Number(val.integerValue);
-  if("doubleValue"  in val) return val.doubleValue;
-  if("stringValue"  in val) return val.stringValue;
-  if("arrayValue"   in val) return (val.arrayValue.values||[]).map(fromFS);
-  if("mapValue"     in val) {
-    const obj={};
-    for(const [k,v] of Object.entries(val.mapValue.fields||{})) obj[k]=fromFS(v);
-    return obj;
-  }
-  return null;
-}
-async function fbGet() {
-  const r=await fetch(`${FB_BASE}/${DOC_PATH}?key=${FB_API_KEY}`);
-  if(r.status===404) return null;
-  if(!r.ok) throw new Error(`GET ${r.status}: ${await r.text()}`);
-  const json=await r.json();
-  const obj={};
-  for(const [k,v] of Object.entries(json.fields||{})) obj[k]=fromFS(v);
-  return obj;
-}
-async function fbSet(data) {
-  const fields={};
-  for(const [k,v] of Object.entries(data)) fields[k]=toFS(v);
-  const r=await fetch(`${FB_BASE}/${DOC_PATH}?key=${FB_API_KEY}`,{
-    method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields})
-  });
-  if(!r.ok) throw new Error(`PATCH ${r.status}: ${await r.text()}`);
-}
+// ── Configuração ─────────────────────────────────────────────────────────────
+// A apiKey do Firebase é pública por natureza: quem protege os dados são as
+// regras do Firestore (firestore.rules), não o segredo desta chave.
+const firebaseConfig = {
+  apiKey: "AIzaSyC2vDmCS2yRtKtPSDjhJJVxG8j7wd9HEZo",
+  authDomain: "grupos-projeto.firebaseapp.com",
+  projectId: "grupos-projeto",
+  storageBucket: "grupos-projeto.appspot.com",
+};
+// Precisa bater com adminEmails() em firestore.rules.
+const ADMIN_EMAILS = ["uomagalhaes@gmail.com"];
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let DB=null, activeTurma="", activeTab="grupos", pollTimer=null;
-let fixedTurma=null;        // turma id from URL ?t=
-let currentProf=null;       // logged-in professor username (null = not logged in)
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
 
-const MASTER_PASSWORD="admin-mestre"; // senha do administrador para aprovar professores
-
-const GRADE_FIELDS=[
-  {key:"entrega_preliminar",label:"Entrega Preliminar",max:10},
-  {key:"entrega_final",     label:"Entrega Final",     max:20},
-  {key:"apresentacao_final",label:"Apresentação Final",max:20},
+const GRADE_FIELDS = [
+  { key:"entrega_preliminar", label:"Entrega Preliminar", max:10 },
+  { key:"entrega_final",      label:"Entrega Final",      max:20 },
+  { key:"apresentacao_final", label:"Apresentação Final", max:20 },
 ];
-const GRADE_MAX=50;
+const GRADE_MAX = 50;
 
-function uid(){return Math.random().toString(36).slice(2,9);}
-// Data model:
-// DB.turmas[turmaId] = { nome, owner, grupos:{...} }
-// DB.professores[username] = { senha, aprovado:true/false }
-// DB.password = legacy master (kept for backward compat)
-function initData(){return {turmas:{},professores:{},password:"prof1234"};}
+// ── Estado ───────────────────────────────────────────────────────────────────
+let user = null;            // usuário Firebase (pode ser anônimo)
+let perfil = null;          // documento professores/{uid}
+let ehAdmin = false;
+let turmas = [];            // [{id, ...dados}] do professor logado
+let grupos = [];            // [{id, ...dados}] da turma ativa (painel professor)
+let activeTurma = "";
+let activeTab = "grupos";
+let fixedTurma = null;      // turma vinda do link/QR
+let turmaAluno = null;      // dados da turma no fluxo do aluno
+let gruposAluno = [];       // grupos visíveis ao aluno
+let rotaInicialTratada = false;
+let unsubTurmas = null, unsubGrupos = null, unsubProfs = null, unsubAlunoGrupos = null;
 
-// Turmas visible to the current professor
-function myTurmas(){
-  const out={};
-  for(const [id,t] of Object.entries(DB.turmas||{})){
-    if(t && t.owner===currentProf) out[id]=t;
-  }
-  return out;
+// ── Utilidades ───────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+function esc(s){
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
-// Find a turma id by its display name for the current prof (used for uniqueness checks)
-function turmaNameExists(nome){
-  for(const t of Object.values(DB.turmas||{})){
-    if(t && t.owner===currentProf && (t.nome||"").toLowerCase()===nome.toLowerCase()) return true;
-  }
-  return false;
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(id).classList.add("active");
+  window.scrollTo(0,0);
 }
-// Display name of the currently active turma (activeTurma holds the id)
+function toast(msg, color = "#34d399"){
+  const t = $("toast");
+  t.textContent = msg; t.style.background = color; t.style.display = "block";
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.style.display = "none"; }, 3400);
+}
+function erroFatal(e){
+  $("error-msg").textContent = e?.message || String(e);
+  showScreen("error-screen");
+}
+// Ordena "Grupo 2" antes de "Grupo 10".
+const collator = new Intl.Collator("pt-BR", { numeric:true, sensitivity:"base" });
+const porNome = (a,b) => collator.compare(a.nome || "", b.nome || "");
+
+// Aceita tanto o formato antigo (string) quanto o novo ({nome, matricula}).
+function alunoNome(a){ return typeof a === "string" ? a : (a?.nome || ""); }
+function alunoMat(a){ return typeof a === "string" ? "" : (a?.matricula || ""); }
+function normMat(m){ return String(m || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+
 function turmaNome(){
-  const t=DB.turmas[activeTurma];
-  return (t&&t.nome)?t.nome:activeTurma;
+  const t = turmas.find(t => t.id === activeTurma);
+  return t ? t.nome : "";
+}
+function turmaAtiva(){ return turmas.find(t => t.id === activeTurma) || null; }
+
+function mostrarSalvando(on){
+  $("save-indicator").style.display = on ? "flex" : "none";
+  $("live-indicator").style.display = on ? "none" : "flex";
+}
+// Toda escrita passa por aqui: erro nunca é engolido em silêncio.
+async function gravar(fn, msgErro = "Não foi possível salvar"){
+  mostrarSalvando(true);
+  try {
+    await fn();
+    return true;
+  } catch (e) {
+    console.error(e);
+    toast(`${msgErro}: ${msgFirebase(e)}`, "#f87171");
+    return false;
+  } finally {
+    mostrarSalvando(false);
+  }
+}
+function msgFirebase(e){
+  const c = e?.code || "";
+  const mapa = {
+    "auth/invalid-email": "E-mail inválido.",
+    "auth/invalid-credential": "E-mail ou senha incorretos.",
+    "auth/wrong-password": "Senha incorreta.",
+    "auth/user-not-found": "Não existe conta com este e-mail.",
+    "auth/email-already-in-use": "Já existe uma conta com este e-mail.",
+    "auth/weak-password": "A senha precisa ter ao menos 8 caracteres.",
+    "auth/too-many-requests": "Muitas tentativas. Aguarde alguns minutos.",
+    "auth/network-request-failed": "Falha de rede. Verifique sua conexão.",
+    "auth/operation-not-allowed": "Método de login não ativado no Firebase (Authentication → Sign-in method).",
+    "auth/unauthorized-domain": "Domínio não autorizado no Firebase Authentication.",
+    "permission-denied": "Permissão negada pelas regras de segurança.",
+    "already-exists": "Registro já existente.",
+  };
+  return mapa[c] || e?.message || "Erro inesperado.";
 }
 
-// ── URL helpers ───────────────────────────────────────────────────────────────
-function getBaseUrl() {
-  return window.location.origin + window.location.pathname;
-}
-// Student link now uses the turma's unique id: ?t=<id>
-function turmaUrl(turmaId) {
-  return getBaseUrl() + "?t=" + encodeURIComponent(turmaId);
-}
-// Returns a turma id from the URL. Supports new ?t=<id> and legacy ?turma=<nome>.
-function getUrlTurma() {
-  const p=new URLSearchParams(window.location.search);
-  const tid=p.get("t");
-  if(tid) return tid;
-  // legacy: ?turma=<nome> — find first turma with that name
-  const nome=p.get("turma");
-  if(nome && DB && DB.turmas){
-    for(const [id,t] of Object.entries(DB.turmas)){
-      if(t && (t.nome||id)===nome) return id;
-    }
+// ── URL / links de turma ─────────────────────────────────────────────────────
+function getBaseUrl(){ return window.location.origin + window.location.pathname; }
+function turmaUrl(turmaId){ return `${getBaseUrl()}?t=${encodeURIComponent(turmaId)}`; }
+
+// Resolve o parâmetro da URL: ?t=<id> (novo) ou ?turma=<nome> (QR antigos).
+async function resolverTurmaDaUrl(){
+  const p = new URLSearchParams(window.location.search);
+  const tid = p.get("t");
+  if (tid) {
+    const s = await getDoc(doc(db, "turmas", tid));
+    return s.exists() ? { id:s.id, ...s.data() } : null;
+  }
+  const nome = p.get("turma");
+  if (nome) {
+    const qs = await getDocs(query(collection(db, "turmas"), where("nome", "==", nome)));
+    if (!qs.empty) { const d = qs.docs[0]; return { id:d.id, ...d.data() }; }
   }
   return null;
 }
 
-// ── Screens ───────────────────────────────────────────────────────────────────
-function showScreen(id){
-  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
-function toast(msg,color="#34d399"){
-  const t=document.getElementById("toast");
-  t.textContent=msg; t.style.background=color; t.style.display="block";
-  setTimeout(()=>t.style.display="none",3000);
-}
+// ── Ciclo de autenticação ────────────────────────────────────────────────────
+showScreen("loading-screen");
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-async function init() {
-  showScreen("loading-screen");
+// Se a conexão não resolver, diga o que está errado em vez de girar para sempre.
+const watchdog = setTimeout(() => {
+  if ($("loading-screen").classList.contains("active")) {
+    erroFatal(new Error(
+      "Sem resposta do Firebase. Verifique se os métodos de login E-mail/senha e Anônimo " +
+      "estão ativados no Console do Firebase (Authentication → Sign-in method) e se este " +
+      "domínio está na lista de domínios autorizados."
+    ));
+  }
+}, 12000);
+
+onAuthStateChanged(auth, async (u) => {
+  clearTimeout(watchdog);
+  user = u;
   try {
-    let d=await fbGet();
-    if(!d){d=initData();await fbSet(d);}
-    DB=d;
-    // Ensure new fields exist (migration for older data)
-    if(!DB.professores) DB.professores={};
-    if(!DB.turmas) DB.turmas={};
-    // Parse URL turma AFTER DB is loaded (needs data for legacy lookup)
-    fixedTurma = getUrlTurma();
-    if(fixedTurma && DB.turmas[fixedTurma]) {
-      openStudentForTurma(fixedTurma);
-    } else if(fixedTurma && !DB.turmas[fixedTurma]) {
-      showScreen("home-screen");
-      setTimeout(()=>toast("Turma não encontrada.","#f87171"),400);
-    } else {
-      showScreen("home-screen");
+    if (!u) {
+      // Sessão anônima permite ao aluno se inscrever sem criar conta e
+      // mantém as regras do Firestore exigindo request.auth != null.
+      perfil = null; ehAdmin = false;
+      limparAssinaturasProfessor();
+      await signInAnonymously(auth).catch(e => {
+        if (e?.code === "auth/admin-restricted-operation" || e?.code === "auth/operation-not-allowed") {
+          erroFatal(new Error("Ative o login Anônimo em Firebase → Authentication → Sign-in method."));
+        } else { erroFatal(e); }
+      });
+      return; // onAuthStateChanged será chamado de novo com o usuário anônimo
     }
-    startPoll();
-  } catch(e) {
-    document.getElementById("error-msg").textContent=e.message;
-    showScreen("error-screen");
+
+    if (u.isAnonymous) {
+      perfil = null; ehAdmin = false;
+      limparAssinaturasProfessor();
+      await rotaInicial();
+      return;
+    }
+
+    // Professor autenticado
+    ehAdmin = !!u.email && ADMIN_EMAILS.includes(u.email.toLowerCase());
+    // As regras exigem e-mail confirmado para reconhecer o administrador —
+    // é o que impede alguém de se cadastrar com o seu e-mail e virar admin.
+    if (ehAdmin && !u.emailVerified) { telaPendente({ soVerificar:true }); return; }
+    const ref = doc(db, "professores", u.uid);
+    let snap = await getDoc(ref);
+    if (!snap.exists()) {
+      // Conta de auth existe sem perfil (cadastro interrompido): recria pendente.
+      await setDoc(ref, {
+        email: u.email || "",
+        nome: u.displayName || (u.email || "").split("@")[0],
+        aprovado: false, admin: false,
+        emailVerificado: !!u.emailVerified,
+        criadoEm: serverTimestamp(),
+      });
+      snap = await getDoc(ref);
+    }
+    perfil = { id:snap.id, ...snap.data() };
+
+    // O admin entra direto, mesmo antes de existir qualquer aprovação.
+    if (!perfil.aprovado && !ehAdmin) { telaPendente(); return; }
+    if (perfil.aprovado === false && ehAdmin) {
+      await updateDoc(ref, { aprovado:true, admin:true }).catch(()=>{});
+      perfil.aprovado = true; perfil.admin = true;
+    }
+    await rotaInicial({ preferirPainel:true });
+  } catch (e) {
+    console.error(e);
+    erroFatal(e);
+  }
+});
+
+// Decide a primeira tela: link de aluno tem prioridade sobre o painel.
+async function rotaInicial(opts = {}){
+  if (!rotaInicialTratada) {
+    rotaInicialTratada = true;
+    const t = await resolverTurmaDaUrl().catch(() => null);
+    const temParam = new URLSearchParams(window.location.search).has("t")
+                  || new URLSearchParams(window.location.search).has("turma");
+    if (t) { abrirAlunoNaTurma(t); return; }
+    if (temParam) {
+      showScreen("home-screen");
+      setTimeout(() => toast("Turma não encontrada. Peça um link novo ao professor.", "#f87171"), 300);
+      return;
+    }
+  }
+  if (opts.preferirPainel && user && !user.isAnonymous) { abrirPainelProfessor(); return; }
+  if (!document.querySelector(".screen.active") || $("loading-screen").classList.contains("active")) {
+    showScreen("home-screen");
   }
 }
 
-function startPoll(){
-  if(pollTimer) clearInterval(pollTimer);
-  pollTimer=setInterval(async()=>{
-    try{const d=await fbGet();if(d){DB=d;silentRefresh();}}catch(e){}
-  },30000); // poll every 30s — only syncs data, never interrupts editing
+function telaPendente(opts = {}){
+  $("pending-email").textContent = user?.email || "";
+  $("pending-verify").style.display = user && !user.emailVerified ? "block" : "none";
+  $("pending-title").textContent = opts.soVerificar ? "Confirme seu e-mail" : "Conta aguardando aprovação";
+  $("pending-text").innerHTML = opts.soVerificar
+    ? `Você é o administrador desta plataforma. Confirme o e-mail <b style="color:var(--text);">${esc(user?.email || "")}</b> para liberar seu acesso — é essa confirmação que impede outra pessoa de se cadastrar com o seu e-mail.`
+    : `Sua conta <b style="color:var(--text);">${esc(user?.email || "")}</b> foi criada. O administrador precisa aprová-la antes do primeiro acesso.`;
+  showScreen("pending-screen");
 }
 
-function userIsTyping(){
-  // Returns true if any input/select/textarea currently has focus
-  const tag=(document.activeElement||{}).tagName||"";
-  return ["INPUT","TEXTAREA","SELECT"].includes(tag);
+function limparAssinaturasProfessor(){
+  if (unsubTurmas) { unsubTurmas(); unsubTurmas = null; }
+  if (unsubGrupos) { unsubGrupos(); unsubGrupos = null; }
+  if (unsubProfs)  { unsubProfs();  unsubProfs  = null; }
+  turmas = []; grupos = []; activeTurma = "";
 }
 
-function silentRefresh(){
-  // Never re-render while the user is actively typing or editing a field
-  if(userIsTyping()) return;
-
-  if(document.getElementById("admin-screen").classList.contains("active")){
-    renderTurmas();
-    // Never auto-refresh notas tab — user may be entering grades
-    if(activeTab==="grupos") renderGrupos();
-    // QR tab needs no refresh
-  }
-  if(document.getElementById("student-screen").classList.contains("active")){
-    if(!fixedTurma) renderStudentTurmas();
-    renderStudentGrupos();
-  }
-}
-async function persist(){
-  const ind=document.getElementById("save-indicator"),live=document.getElementById("live-indicator");
-  ind.style.display="flex";live.style.display="none";
-  try{await fbSet(DB);}catch(e){toast("Erro ao salvar: "+e.message,"#f87171");}
-  ind.style.display="none";live.style.display="flex";
-}
-
-// ── Home buttons ──────────────────────────────────────────────────────────────
-document.getElementById("btn-student").onclick=()=>{
+// ── Botões da home ───────────────────────────────────────────────────────────
+$("btn-student").onclick = async () => {
+  fixedTurma = null; turmaAluno = null;
   resetStudentForm();
-  renderStudentTurmas();
+  await carregarTurmasParaAluno();
   showScreen("student-screen");
 };
-document.getElementById("btn-teacher").onclick=()=>{
-  const saved=sessionStorage.getItem("grupos-prof");
-  if(saved && DB.professores[saved] && DB.professores[saved].aprovado){
-    currentProf=saved;
-    showAdmin();
+$("btn-teacher").onclick = () => {
+  if (user && !user.isAnonymous) {
+    if (perfil && !perfil.aprovado && !ehAdmin) telaPendente();
+    else abrirPainelProfessor();
   } else {
-    sessionStorage.removeItem("grupos-prof");
-    currentProf=null;
     switchAuthTab("login");
     showScreen("login-screen");
   }
 };
+$("btn-reload").onclick = () => location.reload();
+document.querySelectorAll("[data-goto]").forEach(b => {
+  b.onclick = () => showScreen(b.dataset.goto);
+});
+document.querySelectorAll("[data-close]").forEach(b => {
+  b.onclick = () => { $(b.dataset.close).style.display = "none"; };
+});
+document.querySelectorAll(".modal-overlay").forEach(m => {
+  m.addEventListener("click", e => { if (e.target === m) m.style.display = "none"; });
+});
 
-// ── Open student screen locked to a specific turma ───────────────────────────
-function openStudentForTurma(turmaId){
-  fixedTurma=turmaId;
-  resetStudentForm();
-  const nome=(DB.turmas[turmaId]||{}).nome||turmaId;
-  // Hide turma selector, show badge
-  document.getElementById("turma-select-wrap").style.display="none";
-  document.getElementById("turma-badge").style.display="block";
-  document.getElementById("turma-badge-text").textContent="📚 "+nome;
-  document.getElementById("turma-hint").style.display="none";
-  renderStudentGrupos();
-  showScreen("student-screen");
+// ── Cadastro / login do professor ────────────────────────────────────────────
+function switchAuthTab(tab){
+  $("auth-tab-login").classList.toggle("active", tab === "login");
+  $("auth-tab-signup").classList.toggle("active", tab === "signup");
+  $("auth-panel-login").style.display  = tab === "login"  ? "block" : "none";
+  $("auth-panel-signup").style.display = tab === "signup" ? "block" : "none";
+  $("login-error").style.display = "none";
+  $("signup-msg").style.display  = "none";
 }
+document.querySelectorAll("[data-authtab]").forEach(b => {
+  b.onclick = () => switchAuthTab(b.dataset.authtab);
+});
 
-function resetStudentForm(){
-  document.getElementById("student-name").value="";
-  document.getElementById("student-turma").value="";
-  document.getElementById("student-grupos").innerHTML="";
-  document.getElementById("already-in").style.display="none";
-  // Restore UI for non-fixed turma
-  if(!fixedTurma){
-    document.getElementById("turma-select-wrap").style.display="flex";
-    document.getElementById("turma-badge").style.display="none";
-    document.getElementById("turma-hint").style.display="block";
+async function doLogin(){
+  const email = $("login-email").value.trim();
+  const pw    = $("login-pw").value;
+  const err   = $("login-error");
+  if (!email || !pw) { err.textContent = "Informe e-mail e senha."; err.style.display = "block"; return; }
+  err.style.display = "none";
+  const btn = $("btn-do-login"); btn.disabled = true; btn.textContent = "Entrando…";
+  try {
+    await signInWithEmailAndPassword(auth, email, pw);
+    $("login-pw").value = "";
+    // onAuthStateChanged assume a partir daqui.
+  } catch (e) {
+    err.textContent = msgFirebase(e); err.style.display = "block";
+  } finally {
+    btn.disabled = false; btn.textContent = "Entrar";
   }
 }
+$("btn-do-login").onclick = doLogin;
+$("login-email").onkeydown = e => { if (e.key === "Enter") doLogin(); };
+$("login-pw").onkeydown    = e => { if (e.key === "Enter") doLogin(); };
 
-// ── Auth: login / signup ──────────────────────────────────────────────────────
-function switchAuthTab(tab){
-  document.getElementById("auth-tab-login").classList.toggle("active",tab==="login");
-  document.getElementById("auth-tab-signup").classList.toggle("active",tab==="signup");
-  document.getElementById("auth-panel-login").style.display=tab==="login"?"block":"none";
-  document.getElementById("auth-panel-signup").style.display=tab==="signup"?"block":"none";
+$("btn-do-signup").onclick = async () => {
+  const nome  = $("signup-nome").value.trim();
+  const email = $("signup-email").value.trim();
+  const pw    = $("signup-pw").value;
+  const pw2   = $("signup-pw2").value;
+  const msg   = $("signup-msg");
+  const show = (t, c) => { msg.textContent = t; msg.style.color = c; msg.style.display = "block"; };
+
+  if (nome.length < 3)          return show("Informe seu nome completo.", "#f87171");
+  if (!/^\S+@\S+\.\S+$/.test(email)) return show("Informe um e-mail válido.", "#f87171");
+  if (pw.length < 8)            return show("A senha deve ter ao menos 8 caracteres.", "#f87171");
+  if (pw !== pw2)               return show("As senhas não coincidem.", "#f87171");
+
+  const btn = $("btn-do-signup"); btn.disabled = true; btn.textContent = "Criando…";
+  try {
+    // O aluno pode estar numa sessão anônima; criar a conta a substitui.
+    const cred = await createUserWithEmailAndPassword(auth, email, pw);
+    await updateProfile(cred.user, { displayName: nome }).catch(() => {});
+    await setDoc(doc(db, "professores", cred.user.uid), {
+      email: cred.user.email || email,
+      nome,
+      aprovado: false,   // exigido pelas regras: ninguém se autoaprova
+      admin: false,
+      emailVerificado: false,
+      criadoEm: serverTimestamp(),
+    });
+    await sendEmailVerification(cred.user).catch(() => {});
+    $("signup-pw").value = ""; $("signup-pw2").value = "";
+    show("✅ Conta criada! Confirme seu e-mail e aguarde a aprovação do administrador.", "#34d399");
+    // onAuthStateChanged levará à tela de espera.
+  } catch (e) {
+    show(msgFirebase(e), "#f87171");
+  } finally {
+    btn.disabled = false; btn.textContent = "Criar conta";
+  }
+};
+
+$("btn-forgot").onclick = async () => {
+  const email = $("login-email").value.trim();
+  if (!email) { toast("Digite seu e-mail no campo acima primeiro.", "#fb923c"); return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    toast("Enviamos um link de redefinição para seu e-mail.");
+  } catch (e) { toast(msgFirebase(e), "#f87171"); }
+};
+
+$("btn-resend-verify").onclick = async () => {
+  try { await sendEmailVerification(auth.currentUser); toast("E-mail de confirmação reenviado."); }
+  catch (e) { toast(msgFirebase(e), "#f87171"); }
+};
+$("btn-recheck").onclick = async () => {
+  const btn = $("btn-recheck"); btn.disabled = true; btn.textContent = "Verificando…";
+  try {
+    await auth.currentUser.reload();
+    // Sem forçar a renovação, o token continua dizendo email_verified:false e as
+    // regras seguem recusando as escritas.
+    await auth.currentUser.getIdToken(true);
+    const u = auth.currentUser;
+    const admin = !!u.email && ADMIN_EMAILS.includes(u.email.toLowerCase());
+    if (admin && !u.emailVerified) { toast("E-mail ainda não confirmado. Clique no link que enviamos.", "#fb923c"); return; }
+    const snap = await getDoc(doc(db, "professores", u.uid));
+    if (admin || (snap.exists() && snap.data().aprovado)) location.reload();
+    else toast("Sua conta ainda não foi aprovada.", "#fb923c");
+  } catch (e) {
+    toast(msgFirebase(e), "#f87171");
+  } finally {
+    btn.disabled = false; btn.textContent = "↻ Já fui aprovado, verificar";
+  }
+};
+const sair = async () => { limparAssinaturasProfessor(); perfil = null; rotaInicialTratada = true; await signOut(auth); showScreen("home-screen"); };
+$("btn-pending-logout").onclick = sair;
+$("btn-logout").onclick = sair;
+$("btn-master-logout").onclick = sair;
+
+$("btn-reset-pw").onclick = async () => {
+  if (!user?.email) return;
+  if (!confirm(`Enviar um link de redefinição de senha para ${user.email}?`)) return;
+  try { await sendPasswordResetEmail(auth, user.email); toast("Link enviado para seu e-mail."); }
+  catch (e) { toast(msgFirebase(e), "#f87171"); }
+};
+
+// ── Painel do administrador ──────────────────────────────────────────────────
+$("btn-admin-panel").onclick = () => abrirPainelAdmin();
+$("btn-master-to-panel").onclick = () => abrirPainelProfessor();
+
+function abrirPainelAdmin(){
+  showScreen("master-screen");
+  renderMigracao();
+  if (unsubProfs) return;
+  unsubProfs = onSnapshot(collection(db, "professores"),
+    (qs) => renderMaster(qs.docs.map(d => ({ id:d.id, ...d.data() }))),
+    (e)  => { console.error(e); toast("Erro ao carregar professores: " + msgFirebase(e), "#f87171"); });
 }
 
-function doLogin(){
-  const user=document.getElementById("login-user").value.trim();
-  const pw=document.getElementById("login-pw").value;
-  const err=document.getElementById("login-error");
-  const p=DB.professores[user];
-  if(!p){ err.textContent="Usuário não encontrado."; err.style.display="block"; return; }
-  if(p.senha!==pw){ err.textContent="Senha incorreta."; err.style.display="block"; return; }
-  if(!p.aprovado){ err.textContent="Sua conta ainda não foi aprovada pelo administrador."; err.style.display="block"; return; }
-  err.style.display="none";
-  currentProf=user;
-  sessionStorage.setItem("grupos-prof",user);
-  document.getElementById("login-user").value="";
-  document.getElementById("login-pw").value="";
-  showAdmin();
-}
+function renderMaster(lista){
+  const pend = lista.filter(p => !p.aprovado);
+  const apro = lista.filter(p =>  p.aprovado);
 
-async function doSignup(){
-  const user=document.getElementById("signup-user").value.trim();
-  const pw=document.getElementById("signup-pw").value;
-  const pw2=document.getElementById("signup-pw2").value;
-  const msg=document.getElementById("signup-msg");
-  function show(t,color){msg.textContent=t;msg.style.color=color;msg.style.display="block";}
-  if(!user){ show("Escolha um nome de usuário.","#f87171"); return; }
-  if(user.length<3){ show("O nome de usuário deve ter ao menos 3 caracteres.","#f87171"); return; }
-  if(DB.professores[user]){ show("Este nome de usuário já existe.","#f87171"); return; }
-  if(pw.length<4){ show("A senha deve ter ao menos 4 caracteres.","#f87171"); return; }
-  if(pw!==pw2){ show("As senhas não coincidem.","#f87171"); return; }
-  // Re-fetch to avoid overwriting concurrent signups
-  try{ const fresh=await fbGet(); if(fresh){DB=fresh; if(!DB.professores)DB.professores={}; if(!DB.turmas)DB.turmas={};} }catch(e){}
-  if(DB.professores[user]){ show("Este nome de usuário já existe.","#f87171"); return; }
-  DB.professores[user]={senha:pw,aprovado:false};
-  await persist();
-  document.getElementById("signup-user").value="";
-  document.getElementById("signup-pw").value="";
-  document.getElementById("signup-pw2").value="";
-  show("✅ Conta criada! Aguarde a aprovação do administrador para entrar.","#34d399");
-}
-
-function logoutProf(){
-  currentProf=null;
-  sessionStorage.removeItem("grupos-prof");
-  activeTurma="";
-  showScreen("home-screen");
-}
-
-// ── Master admin ──────────────────────────────────────────────────────────────
-function showMasterLogin(){
-  document.getElementById("master-pw").value="";
-  document.getElementById("master-error").style.display="none";
-  showScreen("master-login-screen");
-}
-function doMasterLogin(){
-  const pw=document.getElementById("master-pw").value;
-  const err=document.getElementById("master-error");
-  // Accept the master password or the legacy password
-  if(pw===MASTER_PASSWORD || pw===DB.password){
-    err.style.display="none";
-    document.getElementById("master-pw").value="";
-    renderMaster();
-    showScreen("master-screen");
-  } else { err.textContent="Senha incorreta."; err.style.display="block"; }
-}
-
-function renderMaster(){
-  const professores=DB.professores||{};
-  const pending=Object.entries(professores).filter(([,p])=>!p.aprovado);
-  const approved=Object.entries(professores).filter(([,p])=>p.aprovado);
-
-  const pendEl=document.getElementById("master-pending");
-  const apprEl=document.getElementById("master-approved");
-
-  // Pending
-  let ph=`<div class="section-title">Aguardando aprovação (${pending.length})</div>`;
-  if(!pending.length){ ph+=`<div class="card" style="text-align:center;color:var(--muted);">Nenhuma conta pendente.</div>`; }
+  let ph = `<div class="section-title">Aguardando aprovação (${pend.length})</div>`;
+  if (!pend.length) ph += `<div class="card" style="text-align:center;color:var(--muted);">Nenhuma conta pendente.</div>`;
   else {
-    ph+=`<div style="display:flex;flex-direction:column;gap:8px;">`;
-    for(const [user] of pending){
-      ph+=`<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <b style="font-size:15px;">👤 ${esc(user)}</b>
+    ph += `<div style="display:flex;flex-direction:column;gap:8px;">`;
+    for (const p of pend) {
+      ph += `<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <b style="font-size:15px;">👤 ${esc(p.nome || p.email)}</b>
+          <div style="color:var(--muted);font-size:12px;word-break:break-all;">${esc(p.email)}</div>
+          <div style="font-size:11px;margin-top:4px;color:${p.emailVerificado ? "var(--green)" : "var(--yellow)"};">
+            ${p.emailVerificado ? "✓ e-mail confirmado" : "⚠ e-mail ainda não confirmado"}
+          </div>
+        </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-success btn-sm" onclick="approveProf('${esc(user).replace(/'/g,"\\'")}')">✓ Aprovar</button>
-          <button class="btn btn-danger btn-sm" onclick="rejectProf('${esc(user).replace(/'/g,"\\'")}')">✕ Recusar</button>
+          <button class="btn btn-success btn-sm" data-aprovar="${esc(p.id)}">✓ Aprovar</button>
+          <button class="btn btn-danger btn-sm" data-recusar="${esc(p.id)}">✕ Recusar</button>
         </div>
       </div>`;
     }
-    ph+=`</div>`;
+    ph += `</div>`;
   }
-  pendEl.innerHTML=ph;
+  $("master-pending").innerHTML = ph;
 
-  // Approved
-  let ah=`<div class="section-title">Professores ativos (${approved.length})</div>`;
-  if(!approved.length){ ah+=`<div class="card" style="text-align:center;color:var(--muted);">Nenhum professor ativo ainda.</div>`; }
+  let ah = `<div class="section-title">Professores ativos (${apro.length})</div>`;
+  if (!apro.length) ah += `<div class="card" style="text-align:center;color:var(--muted);">Nenhum professor ativo ainda.</div>`;
   else {
-    ah+=`<div style="display:flex;flex-direction:column;gap:8px;">`;
-    for(const [user] of approved){
-      const nTurmas=Object.values(DB.turmas||{}).filter(t=>t&&t.owner===user).length;
-      ah+=`<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div><b style="font-size:15px;">👤 ${esc(user)}</b> <span style="color:var(--muted);font-size:12px;">— ${nTurmas} turma${nTurmas!==1?"s":""}</span></div>
-        <button class="btn btn-danger btn-sm" onclick="removeProf('${esc(user).replace(/'/g,"\\'")}')">Remover</button>
+    ah += `<div style="display:flex;flex-direction:column;gap:8px;">`;
+    for (const p of apro) {
+      const eu = p.id === user?.uid;
+      ah += `<div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <b style="font-size:15px;">👤 ${esc(p.nome || p.email)}</b>${eu ? ` <span class="tag" style="background:rgba(79,142,247,.15);color:var(--accent);">você</span>` : ""}
+          <div style="color:var(--muted);font-size:12px;word-break:break-all;">${esc(p.email)}</div>
+        </div>
+        ${eu ? "" : `<button class="btn btn-danger btn-sm" data-remover="${esc(p.id)}">Remover acesso</button>`}
       </div>`;
     }
-    ah+=`</div>`;
+    ah += `</div>`;
   }
-  apprEl.innerHTML=ah;
+  $("master-approved").innerHTML = ah;
 }
 
-async function approveProf(user){
-  try{ const fresh=await fbGet(); if(fresh){DB=fresh;if(!DB.professores)DB.professores={};} }catch(e){}
-  if(DB.professores[user]){ DB.professores[user].aprovado=true; await persist(); }
-  renderMaster(); toast("Professor aprovado!");
-}
-async function rejectProf(user){
-  if(!confirm(`Recusar e excluir a conta "${user}"?`)) return;
-  try{ const fresh=await fbGet(); if(fresh){DB=fresh;if(!DB.professores)DB.professores={};} }catch(e){}
-  delete DB.professores[user]; await persist();
-  renderMaster(); toast("Conta recusada.");
-}
-async function removeProf(user){
-  const nTurmas=Object.values(DB.turmas||{}).filter(t=>t&&t.owner===user).length;
-  if(!confirm(`Remover o professor "${user}"?${nTurmas?` As ${nTurmas} turma(s) dele também serão excluídas.`:""}`)) return;
-  try{ const fresh=await fbGet(); if(fresh){DB=fresh;if(!DB.professores)DB.professores={};if(!DB.turmas)DB.turmas={};} }catch(e){}
-  delete DB.professores[user];
-  // remove owned turmas
-  for(const [id,t] of Object.entries(DB.turmas)){ if(t&&t.owner===user) delete DB.turmas[id]; }
-  await persist();
-  renderMaster(); toast("Professor removido.");
+$("master-pending").addEventListener("click", async (e) => {
+  const ap = e.target.closest("[data-aprovar]"), rc = e.target.closest("[data-recusar]");
+  if (ap) {
+    await gravar(() => updateDoc(doc(db, "professores", ap.dataset.aprovar), { aprovado:true }), "Erro ao aprovar");
+    toast("Professor aprovado!");
+  } else if (rc) {
+    if (!confirm("Recusar e excluir esta solicitação de conta?")) return;
+    await gravar(() => deleteDoc(doc(db, "professores", rc.dataset.recusar)), "Erro ao recusar");
+    toast("Solicitação recusada.");
+  }
+});
+$("master-approved").addEventListener("click", async (e) => {
+  const rm = e.target.closest("[data-remover]");
+  if (!rm) return;
+  if (!confirm("Remover o acesso deste professor? As turmas dele continuam existindo e ficam acessíveis a você como administrador.")) return;
+  await gravar(() => deleteDoc(doc(db, "professores", rm.dataset.remover)), "Erro ao remover");
+  toast("Acesso removido.");
+});
+
+// ── Migração dos dados antigos (app/dados) ───────────────────────────────────
+async function renderMigracao(){
+  const el = $("master-migracao");
+  el.innerHTML = "";
+  if (!ehAdmin) return;
+  let legado = null;
+  try {
+    const s = await getDoc(doc(db, "app", "dados"));
+    if (s.exists()) legado = s.data();
+  } catch { return; } // regras já bloquearam o documento antigo: nada a migrar
+  const antigas = Object.entries(legado?.turmas || {});
+  if (!antigas.length) return;
+
+  // Consulta direta ao servidor: a idempotência não pode depender do que já
+  // estava carregado na tela, senão uma segunda importação duplicaria tudo.
+  const minhas = await getDocs(query(collection(db, "turmas"), where("ownerUid", "==", user.uid)));
+  const jaMigradas = new Set(minhas.docs.map(d => d.data().legadoKey).filter(Boolean));
+  const pendentes = antigas.filter(([nome]) => !jaMigradas.has(nome));
+  const nGrupos = pendentes.reduce((acc, [,t]) => acc + Object.keys(t.grupos || {}).length, 0);
+  const nAlunos = pendentes.reduce((acc, [,t]) =>
+    acc + Object.values(t.grupos || {}).reduce((s,g) => s + (g.alunos || []).length, 0), 0);
+
+  if (!pendentes.length) {
+    el.innerHTML = `<div class="card" style="border-color:rgba(52,211,153,.35);">
+      <b style="color:var(--green);">✓ Dados antigos já importados</b>
+      <p style="color:var(--muted);font-size:13px;margin-top:6px;">As ${antigas.length} turmas do formato anterior já estão no seu painel.</p>
+    </div>`;
+    return;
+  }
+  el.innerHTML = `<div class="card" style="border-color:rgba(251,191,36,.4);">
+    <b style="color:var(--yellow);">📦 Dados antigos encontrados</b>
+    <p style="color:var(--muted);font-size:13px;margin:8px 0 14px;line-height:1.5;">
+      ${pendentes.length} turma(s), ${nGrupos} grupo(s) e ${nAlunos} aluno(s) no formato anterior.
+      A importação copia tudo para o seu painel sem apagar o registro antigo.
+    </p>
+    <button class="btn btn-primary btn-md" id="btn-migrar">Importar dados antigos</button>
+  </div>`;
+  $("btn-migrar").onclick = () => migrar(pendentes);
 }
 
-// ── Admin ─────────────────────────────────────────────────────────────────────
-function showAdmin(){
-  activeTurma="";
-  document.getElementById("prof-badge").textContent="👤 "+currentProf;
-  renderTurmas(); renderGrupos();
+async function migrar(pendentes){
+  const btn = $("btn-migrar"); btn.disabled = true; btn.textContent = "Importando…";
+  try {
+    let nT = 0, nG = 0, nA = 0;
+    for (const [nomeTurma, dados] of pendentes) {
+      const batch = writeBatch(db);
+      const turmaRef = doc(collection(db, "turmas"));
+      batch.set(turmaRef, {
+        nome: nomeTurma,
+        ownerUid: user.uid,
+        ownerEmail: user.email || "",
+        inscricoesAbertas: true,
+        legadoKey: nomeTurma,           // torna a importação idempotente
+        criadoEm: serverTimestamp(),
+      });
+      for (const [gid, g] of Object.entries(dados.grupos || {})) {
+        const alunos = (g.alunos || []).map(a => ({
+          nome: alunoNome(a), matricula: alunoMat(a), uid: "",
+        }));
+        // Mantém o id original do grupo, preservando qualquer referência antiga.
+        batch.set(doc(db, "turmas", turmaRef.id, "grupos", gid), {
+          nome: g.nome || "Grupo",
+          tema: g.tema || "",
+          limite: Number(g.limite) || 0,
+          representante: g.representante || "",
+          alunos,
+          notas: g.notas || {},
+        });
+        nG++; nA += alunos.length;
+      }
+      await batch.commit();
+      nT++;
+    }
+    toast(`Importação concluída: ${nT} turmas, ${nG} grupos, ${nA} alunos.`);
+    renderMigracao();
+  } catch (e) {
+    console.error(e);
+    toast("Erro na importação: " + msgFirebase(e), "#f87171");
+    btn.disabled = false; btn.textContent = "Importar dados antigos";
+  }
+}
+
+// ── Painel do professor ──────────────────────────────────────────────────────
+function abrirPainelProfessor(){
+  $("prof-badge").textContent = "👤 " + (perfil?.nome || user?.email || "");
+  $("btn-admin-panel").style.display = ehAdmin ? "inline-flex" : "none";
   showScreen("admin-screen");
+  assinarTurmas();
 }
 
-function switchTab(tab){
-  activeTab=tab;
-  ["grupos","qr","notas"].forEach(t=>{
-    document.getElementById("tab-"+t).classList.toggle("active",t===tab);
-    document.getElementById("panel-"+t).style.display=t===tab?"block":"none";
-  });
-  if(tab==="grupos") renderGrupos();
-  if(tab==="qr")     renderTurmaQR();
-  if(tab==="notas")  renderNotas();
+function assinarTurmas(){
+  if (unsubTurmas) return;
+  unsubTurmas = onSnapshot(
+    query(collection(db, "turmas"), where("ownerUid", "==", user.uid)),
+    (qs) => {
+      turmas = qs.docs.map(d => ({ id:d.id, ...d.data() })).sort(porNome);
+      if (activeTurma && !turmas.some(t => t.id === activeTurma)) activeTurma = "";
+      renderTurmas();
+      if (activeTurma) { renderCabecalhoTurma(); }
+      else { $("turma-content").style.display = "none"; $("no-turma").style.display = "block"; }
+    },
+    (e) => { console.error(e); toast("Erro ao carregar turmas: " + msgFirebase(e), "#f87171"); }
+  );
+}
+
+function assinarGrupos(){
+  if (unsubGrupos) { unsubGrupos(); unsubGrupos = null; }
+  grupos = [];
+  if (!activeTurma) return;
+  unsubGrupos = onSnapshot(
+    collection(db, "turmas", activeTurma, "grupos"),
+    (qs) => {
+      grupos = qs.docs.map(d => ({ id:d.id, ...d.data() })).sort(porNome);
+      if (activeTab === "grupos") renderGrupos();
+      if (activeTab === "notas" && !document.activeElement?.classList.contains("grade-input")) renderNotas();
+    },
+    (e) => { console.error(e); toast("Erro ao carregar grupos: " + msgFirebase(e), "#f87171"); }
+  );
 }
 
 function renderTurmas(){
-  const list=document.getElementById("turmas-list");
-  list.innerHTML="";
-  const mine=myTurmas();
-  for(const [id,t] of Object.entries(mine)){
-    const nome=t.nome||id;
-    const div=document.createElement("div");
-    div.className="turma-item"+(activeTurma===id?" active":"");
-    div.innerHTML=`<span class="turma-name" style="color:${activeTurma===id?"var(--accent)":"var(--text)"};">${esc(nome)}</span>
-      <button class="remove-btn" onclick="event.stopPropagation();deleteTurma('${id}')">×</button>`;
-    div.onclick=()=>{activeTurma=id;renderTurmas();switchTab(activeTab);};
-    list.appendChild(div);
+  const list = $("turmas-list");
+  if (!turmas.length) {
+    list.innerHTML = `<p style="color:var(--muted);font-size:13px;padding:4px 2px;">Nenhuma turma ainda.</p>`;
+    return;
+  }
+  list.innerHTML = turmas.map(t => `
+    <div class="turma-item${activeTurma === t.id ? " active" : ""}" data-turma="${esc(t.id)}">
+      <span class="turma-name" style="color:${activeTurma === t.id ? "var(--accent)" : "var(--text)"};">${esc(t.nome)}</span>
+      <button class="remove-btn" data-del-turma="${esc(t.id)}" aria-label="Excluir turma">×</button>
+    </div>`).join("");
+}
+
+$("turmas-list").addEventListener("click", async (e) => {
+  const del = e.target.closest("[data-del-turma]");
+  if (del) {
+    e.stopPropagation();
+    const t = turmas.find(x => x.id === del.dataset.delTurma);
+    if (!t) return;
+    if (!confirm(`Excluir a turma "${t.nome}" e todos os seus grupos? Esta ação não pode ser desfeita.`)) return;
+    await excluirTurma(t.id);
+    return;
+  }
+  const item = e.target.closest("[data-turma]");
+  if (!item) return;
+  activeTurma = item.dataset.turma;
+  renderTurmas();
+  renderCabecalhoTurma();
+  assinarGrupos();
+  switchTab(activeTab);
+  fecharDrawer();
+});
+
+function renderCabecalhoTurma(){
+  const t = turmaAtiva();
+  if (!t) return;
+  $("turma-content").style.display = "block";
+  $("no-turma").style.display = "none";
+  $("turma-title").textContent = "Turma: " + t.nome;
+}
+
+async function excluirTurma(id){
+  await gravar(async () => {
+    const gs = await getDocs(collection(db, "turmas", id, "grupos"));
+    const ins = await getDocs(collection(db, "turmas", id, "inscricoes")).catch(() => ({ docs:[] }));
+    const batch = writeBatch(db);
+    gs.docs.forEach(d => batch.delete(d.ref));
+    ins.docs.forEach(d => batch.delete(d.ref));
+    batch.delete(doc(db, "turmas", id));
+    await batch.commit();
+  }, "Erro ao excluir turma");
+  if (activeTurma === id) {
+    activeTurma = "";
+    if (unsubGrupos) { unsubGrupos(); unsubGrupos = null; }
+    $("turma-content").style.display = "none";
+    $("no-turma").style.display = "block";
   }
 }
 
-function renderGrupos(){
-  const content=document.getElementById("turma-content"),noTurma=document.getElementById("no-turma");
-  const t=DB.turmas[activeTurma];
-  if(!activeTurma||!t||t.owner!==currentProf){content.style.display="none";noTurma.style.display="block";return;}
-  content.style.display="block";noTurma.style.display="none";
-  document.getElementById("turma-title").textContent="Turma: "+turmaNome();
-  const grupos=DB.turmas[activeTurma].grupos||{};
-  const grid=document.getElementById("grupos-grid"),noG=document.getElementById("no-grupos");
-  grid.innerHTML="";
-  if(!Object.keys(grupos).length){noG.style.display="block";return;}
-  noG.style.display="none";
-  for(const [gid,g] of Object.entries(grupos)) grid.appendChild(buildGrupoCard(gid,g));
+$("btn-add-turma").onclick = adicionarTurma;
+$("new-turma-input").onkeydown = e => { if (e.key === "Enter") adicionarTurma(); };
+async function adicionarTurma(){
+  const inp = $("new-turma-input");
+  const nome = inp.value.trim();
+  if (!nome) return;
+  if (turmas.some(t => t.nome.toLowerCase() === nome.toLowerCase())) {
+    toast("Você já tem uma turma com esse nome.", "#f87171"); return;
+  }
+  const ref = doc(collection(db, "turmas"));
+  const ok = await gravar(() => setDoc(ref, {
+    nome, ownerUid: user.uid, ownerEmail: user.email || "",
+    inscricoesAbertas: true, criadoEm: serverTimestamp(),
+  }), "Erro ao criar turma");
+  if (!ok) return;
+  inp.value = "";
+  activeTurma = ref.id;
+  renderTurmas(); renderCabecalhoTurma(); assinarGrupos(); switchTab("grupos");
+  fecharDrawer();
 }
 
-function buildGrupoCard(gid,g){
-  const alunos=g.alunos||[],cheio=g.limite>0&&alunos.length>=g.limite;
-  const pct=g.limite?Math.min(100,alunos.length/g.limite*100):0;
-  const barColor=cheio?"var(--red)":pct>70?"var(--orange)":"var(--green)";
-  const repTag=g.representante?`<div style="margin-top:4px;"><span class="tag" style="background:rgba(251,191,36,.13);color:var(--yellow);border:1px solid rgba(251,191,36,.27);">👑 ${esc(g.representante)}</span></div>`:"";
-  const card=document.createElement("div");
-  card.className="card grupo-card";
-  card.innerHTML=`
+// ── Gaveta lateral (celular/tablet) ──────────────────────────────────────────
+function abrirDrawer(){ $("sidebar").classList.add("open"); $("drawer-overlay").classList.add("open"); }
+function fecharDrawer(){ $("sidebar").classList.remove("open"); $("drawer-overlay").classList.remove("open"); }
+$("btn-menu").onclick = () => $("sidebar").classList.contains("open") ? fecharDrawer() : abrirDrawer();
+$("drawer-overlay").onclick = fecharDrawer;
+
+// ── Abas ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll("[data-tab]").forEach(b => { b.onclick = () => switchTab(b.dataset.tab); });
+function switchTab(tab){
+  activeTab = tab;
+  ["grupos","qr","notas"].forEach(t => {
+    $("tab-" + t).classList.toggle("active", t === tab);
+    $("panel-" + t).style.display = t === tab ? "block" : "none";
+  });
+  if (tab === "grupos") renderGrupos();
+  if (tab === "qr")     renderTurmaQR();
+  if (tab === "notas")  renderNotas();
+}
+
+// ── Grupos (professor) ───────────────────────────────────────────────────────
+function renderGrupos(){
+  const grid = $("grupos-grid"), noG = $("no-grupos");
+  if (!activeTurma) return;
+  if (!grupos.length) { grid.innerHTML = ""; noG.style.display = "block"; return; }
+  noG.style.display = "none";
+  grid.innerHTML = grupos.map(cardGrupo).join("");
+}
+
+function cardGrupo(g){
+  const alunos = g.alunos || [];
+  const limite = Number(g.limite) || 0;
+  const cheio = limite > 0 && alunos.length >= limite;
+  const pct = limite ? Math.min(100, alunos.length / limite * 100) : 0;
+  const cor = cheio ? "var(--red)" : pct > 70 ? "var(--orange)" : "var(--green)";
+  const rep = g.representante
+    ? `<div style="margin-top:4px;"><span class="tag" style="background:rgba(251,191,36,.13);color:var(--yellow);border:1px solid rgba(251,191,36,.27);">👑 ${esc(g.representante)}</span></div>` : "";
+  return `
+  <div class="card grupo-card" data-grupo="${esc(g.id)}">
     <div class="grupo-header">
-      <div><b style="font-size:16px;">${esc(g.nome)}</b>${repTag}</div>
-      <button class="btn btn-danger btn-sm" onclick="deleteGrupo('${gid}')">✕</button>
+      <div style="min-width:0;"><b style="font-size:16px;">${esc(g.nome)}</b>${rep}</div>
+      <button class="btn btn-danger btn-sm" data-act="del-grupo" aria-label="Excluir grupo">✕</button>
     </div>
-    <div id="vagas-wrap-${gid}" style="cursor:pointer;" onclick="editLimite('${gid}')">
-      ${g.limite>0?`
+    <div data-view="limite" style="cursor:pointer;" data-act="edit-limite">
+      ${limite > 0 ? `
         <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
           <span style="font-size:11px;color:var(--muted);">VAGAS</span>
-          <span style="font-size:12px;color:${barColor};font-weight:600;">${alunos.length}/${g.limite}${cheio?" • CHEIO":""}</span>
+          <span style="font-size:12px;color:${cor};font-weight:600;">${alunos.length}/${limite}${cheio ? " • CHEIO" : ""}</span>
         </div>
-        <div class="vagas-track"><div class="vagas-fill" style="width:${pct}%;background:${barColor};"></div></div>
-        ${cheio?`<div style="margin-top:6px;"><span class="tag" style="background:rgba(248,113,113,.13);color:var(--red);border:1px solid rgba(248,113,113,.27);">🔒 Grupo cheio</span></div>`:""}
-      `:`<span style="font-size:12px;color:var(--muted);">🔢 Sem limite — <span style="color:var(--accent);">clique para definir</span></span>`}
+        <div class="vagas-track"><div class="vagas-fill" style="width:${pct}%;background:${cor};"></div></div>
+      ` : `<span style="font-size:12px;color:var(--muted);">🔢 Sem limite — <span style="color:var(--accent);">clique para definir</span></span>`}
     </div>
-    <div id="limite-edit-${gid}" style="display:none;" class="inline-edit">
-      <input type="number" min="0" id="limite-val-${gid}" value="${g.limite||0}" style="font-size:13px;padding:6px 10px;"/>
-      <button class="ok-btn" onclick="saveLimite('${gid}')">OK</button>
+    <div data-edit="limite" style="display:none;" class="inline-edit">
+      <input type="number" min="0" value="${limite}" data-input="limite"/>
+      <button class="ok-btn" data-act="save-limite">OK</button>
     </div>
-    <div id="tema-view-${gid}" class="clickable-field" onclick="editTema('${gid}')">
-      <span style="font-size:13px;color:${g.tema?"var(--text)":"var(--muted)"};">📚 ${g.tema?esc(g.tema):"Clique para definir o tema…"}</span>
+    <div data-view="tema" class="clickable-field" data-act="edit-tema">
+      <span style="font-size:13px;color:${g.tema ? "var(--text)" : "var(--muted)"};">📚 ${g.tema ? esc(g.tema) : "Clique para definir o tema…"}</span>
       <span class="edit-hint">✏️</span>
     </div>
-    <div id="tema-edit-${gid}" style="display:none;" class="inline-edit">
-      <input id="tema-val-${gid}" value="${esc(g.tema||"")}" placeholder="Tema…" style="font-size:13px;"/>
-      <button class="ok-btn" onclick="saveTema('${gid}')">OK</button>
+    <div data-edit="tema" style="display:none;" class="inline-edit">
+      <input value="${esc(g.tema || "")}" placeholder="Tema…" data-input="tema"/>
+      <button class="ok-btn" data-act="save-tema">OK</button>
     </div>
     <div>
       <span class="label">Representante</span>
-      <select style="font-size:13px;padding:6px 10px;" onchange="saveRep('${gid}',this.value)">
+      <select data-act="save-rep">
         <option value="">Nenhum</option>
-        ${alunos.map(a=>`<option value="${esc(a)}"${g.representante===a?" selected":""}>${esc(a)}</option>`).join("")}
+        ${alunos.map(a => {
+          const n = alunoNome(a);
+          return `<option value="${esc(n)}"${g.representante === n ? " selected" : ""}>${esc(n)}</option>`;
+        }).join("")}
       </select>
     </div>
     <div>
-      <span class="label">Alunos (${alunos.length}${g.limite?"/"+g.limite:""})</span>
-      ${alunos.length===0?`<p style="color:var(--muted);font-size:12px;margin-bottom:6px;">Nenhum aluno ainda.</p>`:""}
+      <span class="label">Alunos (${alunos.length}${limite ? "/" + limite : ""})</span>
+      ${alunos.length === 0 ? `<p style="color:var(--muted);font-size:12px;margin-bottom:6px;">Nenhum aluno ainda.</p>` : ""}
       <div class="alunos-list">
-        ${alunos.map(a=>`<div class="aluno-item"><span>${esc(a)}${g.representante===a?" 👑":""}</span><button class="remove-btn" onclick="removeAluno('${gid}','${esc(a).replace(/'/g,"\\'")}')">×</button></div>`).join("")}
+        ${alunos.map((a, i) => {
+          const n = alunoNome(a), m = alunoMat(a);
+          return `<div class="aluno-item">
+            <span class="nome">${esc(n)}${g.representante === n ? " 👑" : ""}${m ? `<span class="mat"> · ${esc(m)}</span>` : ""}</span>
+            <button class="remove-btn" data-act="del-aluno" data-idx="${i}" aria-label="Remover aluno">×</button>
+          </div>`;
+        }).join("")}
       </div>
-      <div class="input-row" style="margin-top:8px;">
-        <input id="new-aluno-${gid}" placeholder="Adicionar aluno…" style="font-size:12px;padding:6px 10px;"
-          onkeydown="if(event.key==='Enter'&&this.value.trim()){addAluno('${gid}',this.value.trim());this.value='';}"/>
-        <button class="add-btn" onclick="const i=document.getElementById('new-aluno-${gid}');if(i.value.trim()){addAluno('${gid}',i.value.trim());i.value='';}">+</button>
-      </div>
-    </div>`;
-  return card;
+      <button class="btn btn-ghost btn-sm" data-act="add-aluno" style="margin-top:8px;width:100%;">+ Adicionar aluno</button>
+    </div>
+  </div>`;
 }
 
-function editLimite(gid){document.getElementById(`vagas-wrap-${gid}`).style.display="none";document.getElementById(`limite-edit-${gid}`).style.display="flex";document.getElementById(`limite-val-${gid}`).focus();}
-function saveLimite(gid){DB.turmas[activeTurma].grupos[gid].limite=Number(document.getElementById(`limite-val-${gid}`).value)||0;persist();renderGrupos();}
-function editTema(gid){document.getElementById(`tema-view-${gid}`).style.display="none";document.getElementById(`tema-edit-${gid}`).style.display="flex";document.getElementById(`tema-val-${gid}`).focus();}
-function saveTema(gid){DB.turmas[activeTurma].grupos[gid].tema=document.getElementById(`tema-val-${gid}`).value.trim();persist();renderGrupos();}
-function saveRep(gid,val){DB.turmas[activeTurma].grupos[gid].representante=val;persist();}
-function removeAluno(gid,name){const g=DB.turmas[activeTurma].grupos[gid];g.alunos=(g.alunos||[]).filter(a=>a!==name);if(g.representante===name)g.representante="";persist();renderGrupos();}
-function addAluno(gid,name){const g=DB.turmas[activeTurma].grupos[gid];if(!(g.alunos||[]).includes(name)){g.alunos=[...(g.alunos||[]),name];persist();renderGrupos();}}
-function deleteGrupo(gid){if(!confirm("Excluir este grupo?"))return;delete DB.turmas[activeTurma].grupos[gid];persist();renderGrupos();}
+// Um único listener para todos os cartões: nomes com apóstrofo ou aspas
+// deixam de quebrar a interface (o código anterior os injetava em onclick=).
+$("grupos-grid").addEventListener("click", async (e) => {
+  const card = e.target.closest("[data-grupo]");
+  if (!card) return;
+  const gid = card.dataset.grupo;
+  const g = grupos.find(x => x.id === gid);
+  if (!g) return;
+  const act = e.target.closest("[data-act]")?.dataset.act;
+  const ref = doc(db, "turmas", activeTurma, "grupos", gid);
 
-async function addTurma(){
-  const inp=document.getElementById("new-turma-input"),nome=inp.value.trim();
-  if(!nome)return;
-  // Re-fetch so we don't clobber other professors' turmas created meanwhile
-  try{ const fresh=await fbGet(); if(fresh){DB=fresh;if(!DB.turmas)DB.turmas={};if(!DB.professores)DB.professores={};} }catch(e){}
-  if(turmaNameExists(nome)){ toast("Você já tem uma turma com esse nome.","#f87171"); return; }
-  const id=uid();
-  DB.turmas[id]={nome,owner:currentProf,grupos:{}};
-  inp.value="";activeTurma=id;
-  await persist();renderTurmas();switchTab("grupos");
-}
-function deleteTurma(id){
-  const t=DB.turmas[id];
-  if(!t||t.owner!==currentProf) return;
-  if(!confirm(`Excluir turma "${t.nome||id}"?`))return;
-  delete DB.turmas[id];if(activeTurma===id)activeTurma="";
-  persist();renderTurmas();renderGrupos();
-}
-function showAddGrupo(){document.getElementById("new-grupo-nome").value="";document.getElementById("new-grupo-tema").value="";document.getElementById("new-grupo-limite").value="0";document.getElementById("modal-addgrupo").style.display="flex";}
-function confirmAddGrupo(){
-  const nome=document.getElementById("new-grupo-nome").value.trim();if(!nome)return;
-  const tema=document.getElementById("new-grupo-tema").value.trim();
-  const limite=Number(document.getElementById("new-grupo-limite").value)||0;
-  DB.turmas[activeTurma].grupos[uid()]={nome,tema,limite,representante:"",alunos:[],notas:{}};
-  persist();closeModal("modal-addgrupo");renderGrupos();
-}
-function showChangePw(){document.getElementById("new-pw-input").value="";document.getElementById("modal-pw").style.display="flex";}
-async function confirmChangePw(){
-  const np=document.getElementById("new-pw-input").value.trim();
-  if(!np){return;}
-  if(np.length<4){toast("A senha deve ter ao menos 4 caracteres.","#f87171");return;}
-  try{ const fresh=await fbGet(); if(fresh){DB=fresh;if(!DB.professores)DB.professores={};} }catch(e){}
-  if(DB.professores[currentProf]){ DB.professores[currentProf].senha=np; await persist(); }
-  closeModal("modal-pw");toast("Senha alterada!");
-}
-function closeModal(id){document.getElementById(id).style.display="none";}
-document.querySelectorAll(".modal-overlay").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.style.display="none";}));
+  if (act === "edit-limite") {
+    card.querySelector('[data-view="limite"]').style.display = "none";
+    const box = card.querySelector('[data-edit="limite"]');
+    box.style.display = "flex"; box.querySelector("input").focus();
+  } else if (act === "save-limite") {
+    const val = Number(card.querySelector('[data-input="limite"]').value) || 0;
+    const nAlunos = (g.alunos || []).length;
+    if (val > 0 && val < nAlunos) { toast(`O grupo já tem ${nAlunos} alunos.`, "#f87171"); return; }
+    await gravar(() => updateDoc(ref, { limite: val }));
+  } else if (act === "edit-tema") {
+    card.querySelector('[data-view="tema"]').style.display = "none";
+    const box = card.querySelector('[data-edit="tema"]');
+    box.style.display = "flex"; box.querySelector("input").focus();
+  } else if (act === "save-tema") {
+    await gravar(() => updateDoc(ref, { tema: card.querySelector('[data-input="tema"]').value.trim() }));
+  } else if (act === "del-grupo") {
+    if (!confirm(`Excluir o grupo "${g.nome}"?`)) return;
+    await gravar(() => deleteDoc(ref));
+  } else if (act === "del-aluno") {
+    const idx = Number(e.target.closest("[data-idx]").dataset.idx);
+    const alvo = (g.alunos || [])[idx];
+    if (!alvo) return;
+    if (!confirm(`Remover ${alunoNome(alvo)} do grupo?`)) return;
+    const novos = (g.alunos || []).filter((_, i) => i !== idx);
+    await gravar(async () => {
+      const patch = { alunos: novos };
+      if (g.representante === alunoNome(alvo)) patch.representante = "";
+      await updateDoc(ref, patch);
+      // Libera a matrícula para uma nova inscrição.
+      const mk = normMat(alunoMat(alvo));
+      if (mk) await deleteDoc(doc(db, "turmas", activeTurma, "inscricoes", mk)).catch(() => {});
+    }, "Erro ao remover aluno");
+  } else if (act === "add-aluno") {
+    abrirModalAluno(gid);
+  }
+});
+$("grupos-grid").addEventListener("change", async (e) => {
+  const sel = e.target.closest('[data-act="save-rep"]');
+  if (!sel) return;
+  const gid = e.target.closest("[data-grupo]").dataset.grupo;
+  await gravar(() => updateDoc(doc(db, "turmas", activeTurma, "grupos", gid), { representante: sel.value }));
+});
+$("grupos-grid").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  const inp = e.target.closest("[data-input]");
+  if (!inp) return;
+  const card = e.target.closest("[data-grupo]");
+  card.querySelector(`[data-act="save-${inp.dataset.input}"]`)?.click();
+});
 
-// ── QR por turma ──────────────────────────────────────────────────────────────
-let turmaQRInstance=null;
+// ── Modal: novo grupo / novo aluno ───────────────────────────────────────────
+$("btn-show-addgrupo").onclick = () => {
+  $("new-grupo-nome").value = ""; $("new-grupo-tema").value = ""; $("new-grupo-limite").value = "0";
+  $("modal-addgrupo").style.display = "flex";
+  setTimeout(() => $("new-grupo-nome").focus(), 50);
+};
+$("btn-confirm-addgrupo").onclick = async () => {
+  const nome = $("new-grupo-nome").value.trim();
+  if (!nome) { toast("Informe o nome do grupo.", "#f87171"); return; }
+  const ok = await gravar(() => setDoc(doc(collection(db, "turmas", activeTurma, "grupos")), {
+    nome,
+    tema: $("new-grupo-tema").value.trim(),
+    limite: Number($("new-grupo-limite").value) || 0,
+    representante: "", alunos: [], notas: {},
+  }), "Erro ao criar grupo");
+  if (ok) $("modal-addgrupo").style.display = "none";
+};
 
+let alunoAlvoGid = null;
+function abrirModalAluno(gid){
+  alunoAlvoGid = gid;
+  $("add-aluno-nome").value = ""; $("add-aluno-mat").value = "";
+  $("modal-aluno").style.display = "flex";
+  setTimeout(() => $("add-aluno-nome").focus(), 50);
+}
+$("btn-confirm-aluno").onclick = async () => {
+  const nome = $("add-aluno-nome").value.trim();
+  const mat  = $("add-aluno-mat").value.trim();
+  if (!nome) { toast("Informe o nome do aluno.", "#f87171"); return; }
+  const g = grupos.find(x => x.id === alunoAlvoGid);
+  if (!g) return;
+  const alunos = g.alunos || [];
+  const limite = Number(g.limite) || 0;
+  if (limite > 0 && alunos.length >= limite) { toast("Este grupo já está cheio.", "#f87171"); return; }
+  if (alunos.some(a => alunoNome(a).toLowerCase() === nome.toLowerCase())) {
+    toast("Este aluno já está no grupo.", "#f87171"); return;
+  }
+  const mkNovo = normMat(mat);
+  if (mkNovo) {
+    const dup = grupos.find(x => (x.alunos || []).some(a => normMat(alunoMat(a)) === mkNovo));
+    if (dup) { toast(`Esta matrícula já está no grupo "${dup.nome}".`, "#f87171"); return; }
+  }
+  const ok = await gravar(async () => {
+    const batch = writeBatch(db);
+    batch.update(doc(db, "turmas", activeTurma, "grupos", alunoAlvoGid), {
+      alunos: [...alunos, { nome, matricula: mkNovo, uid: "" }],
+    });
+    if (mkNovo) {
+      batch.set(doc(db, "turmas", activeTurma, "inscricoes", mkNovo),
+        { nome, matricula: mkNovo, grupoId: alunoAlvoGid, uid: "", criadoEm: serverTimestamp() });
+    }
+    await batch.commit();
+  }, "Erro ao adicionar aluno");
+  if (ok) $("modal-aluno").style.display = "none";
+};
+
+// ── QR / link da turma ───────────────────────────────────────────────────────
 function renderTurmaQR(){
-  if(!activeTurma) return;
-  document.getElementById("turma-title").textContent="Turma: "+turmaNome();
-  const url=turmaUrl(activeTurma);
-  document.getElementById("qr-turma-url").textContent=url;
-  const box=document.getElementById("qr-turma-box");
-  box.innerHTML="";
-  turmaQRInstance=null;
-  try{
-    turmaQRInstance=new QRCode(box,{text:url,width:140,height:140,colorDark:"#0f1117",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.H});
-  }catch(e){}
+  const t = turmaAtiva();
+  if (!t) return;
+  const url = turmaUrl(t.id);
+  $("qr-turma-url").textContent = url;
+  const box = $("qr-turma-box");
+  box.innerHTML = "";
+  try {
+    new window.QRCode(box, {
+      text: url, width:150, height:150,
+      colorDark:"#0f1117", colorLight:"#ffffff",
+      correctLevel: window.QRCode.CorrectLevel.H,
+    });
+  } catch (e) { console.error(e); }
+
+  const aberta = t.inscricoesAbertas !== false;
+  $("insc-status-label").textContent = aberta ? "Inscrições abertas" : "Inscrições fechadas";
+  $("insc-status-label").style.color = aberta ? "var(--green)" : "var(--red)";
+  const btn = $("btn-toggle-insc");
+  btn.textContent = aberta ? "Fechar inscrições" : "Reabrir inscrições";
+  btn.className = "btn btn-sm " + (aberta ? "btn-danger" : "btn-success");
 }
+$("btn-toggle-insc").onclick = async () => {
+  const t = turmaAtiva(); if (!t) return;
+  const novo = t.inscricoesAbertas === false;
+  await gravar(() => updateDoc(doc(db, "turmas", t.id), { inscricoesAbertas: novo }));
+  toast(novo ? "Inscrições reabertas." : "Inscrições fechadas.");
+};
 
-function downloadTurmaQR(){
-  const box=document.getElementById("qr-turma-box");
-  const canvas=box.querySelector("canvas");
-  if(!canvas){toast("Aguarde o QR ser gerado.","#f87171");return;}
-  const c2=document.createElement("canvas");c2.width=400;c2.height=460;
-  const ctx=c2.getContext("2d");
-  // background
-  ctx.fillStyle="#0f1117";ctx.fillRect(0,0,400,460);
-  // accent bar
-  ctx.fillStyle="#4f8ef7";ctx.fillRect(0,0,400,50);
-  ctx.fillStyle="#ffffff";ctx.font="bold 18px sans-serif";ctx.textAlign="center";
-  ctx.fillText("Grupos de Projeto",200,32);
-  // white QR box
-  ctx.fillStyle="#ffffff";ctx.roundRect(80,70,240,240,12);ctx.fill();
-  ctx.drawImage(canvas,90,80,220,220);
-  // turma name
-  ctx.fillStyle="#e8eaf6";ctx.font="bold 16px sans-serif";ctx.textAlign="center";
-  ctx.fillText("Turma: "+turmaNome(),200,340);
-  ctx.fillStyle="#7b82a0";ctx.font="12px sans-serif";
-  ctx.fillText("Aponte a câmera para entrar nos grupos",200,362);
-  // url
-  ctx.fillStyle="#4f8ef7";ctx.font="10px monospace";
-  const url=turmaUrl(activeTurma);
-  ctx.fillText(url.length>55?url.substring(0,52)+"...":url,200,390);
-
-  const a=document.createElement("a");
-  a.download=`qrcode-turma-${turmaNome().replace(/\s+/g,"-")}.png`;
-  a.href=c2.toDataURL();a.click();
+$("btn-qr-download").onclick = () => {
+  const canvas = $("qr-turma-box").querySelector("canvas");
+  if (!canvas) { toast("Aguarde o QR ser gerado.", "#f87171"); return; }
+  const c2 = document.createElement("canvas");
+  c2.width = 400; c2.height = 460;
+  const ctx = c2.getContext("2d");
+  ctx.fillStyle = "#0f1117"; ctx.fillRect(0, 0, 400, 460);
+  ctx.fillStyle = "#4f8ef7"; ctx.fillRect(0, 0, 400, 50);
+  ctx.fillStyle = "#ffffff"; ctx.font = "bold 18px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("Grupos de Projeto", 200, 32);
+  ctx.fillStyle = "#ffffff";
+  if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(80, 70, 240, 240, 12); ctx.fill(); }
+  else ctx.fillRect(80, 70, 240, 240);
+  ctx.drawImage(canvas, 90, 80, 220, 220);
+  ctx.fillStyle = "#e8eaf6"; ctx.font = "bold 15px sans-serif";
+  const nome = turmaNome();
+  ctx.fillText(nome.length > 40 ? nome.slice(0, 38) + "…" : nome, 200, 340);
+  ctx.fillStyle = "#7b82a0"; ctx.font = "12px sans-serif";
+  ctx.fillText("Aponte a câmera para entrar nos grupos", 200, 362);
+  ctx.fillStyle = "#4f8ef7"; ctx.font = "10px monospace";
+  const url = turmaUrl(activeTurma);
+  ctx.fillText(url.length > 55 ? url.slice(0, 52) + "..." : url, 200, 390);
+  const a = document.createElement("a");
+  a.download = `qrcode-${nome.replace(/[^\w\-]+/g, "-").slice(0, 50)}.png`;
+  a.href = c2.toDataURL(); a.click();
   toast("QR Code baixado!");
-}
-
-function copyTurmaUrl(){
-  const url=turmaUrl(activeTurma);
-  navigator.clipboard?.writeText(url).then(()=>toast("Link copiado!")).catch(()=>{
-    prompt("Copie o link abaixo:",url);
-  });
-}
-
-function printTurmaQR(){
-  const box=document.getElementById("qr-turma-box");
-  const canvas=box.querySelector("canvas");
-  const url=turmaUrl(activeTurma);
-  const img=canvas?canvas.toDataURL():"";
-  const pa=document.getElementById("print-area");
-  pa.innerHTML=`
+};
+$("btn-qr-copy").onclick = async () => {
+  const url = turmaUrl(activeTurma);
+  try { await navigator.clipboard.writeText(url); toast("Link copiado!"); }
+  catch { prompt("Copie o link abaixo:", url); }
+};
+$("btn-qr-print").onclick = () => {
+  const canvas = $("qr-turma-box").querySelector("canvas");
+  const url = turmaUrl(activeTurma);
+  const img = canvas ? canvas.toDataURL() : "";
+  $("print-area").innerHTML = `
     <div style="font-family:sans-serif;text-align:center;padding:40px;background:#fff;color:#000;">
       <h1 style="font-size:24px;margin-bottom:4px;">Grupos de Projeto</h1>
-      <h2 style="font-size:20px;color:#4f8ef7;margin-bottom:24px;">Turma: ${esc(turmaNome())}</h2>
-      ${img?`<img src="${img}" style="width:220px;height:220px;border:2px solid #eee;border-radius:8px;"/>`:""}
+      <h2 style="font-size:19px;color:#4f8ef7;margin-bottom:24px;">Turma: ${esc(turmaNome())}</h2>
+      ${img ? `<img src="${img}" style="width:220px;height:220px;border:2px solid #eee;border-radius:8px;"/>` : ""}
       <p style="margin-top:16px;font-size:14px;color:#555;">Aponte a câmera do celular para o QR Code acima<br/>ou acesse o link:</p>
-      <p style="margin-top:8px;font-size:12px;color:#4f8ef7;word-break:break-all;">${url}</p>
+      <p style="margin-top:8px;font-size:12px;color:#4f8ef7;word-break:break-all;">${esc(url)}</p>
       <p style="margin-top:24px;font-size:12px;color:#aaa;">Use este link/QR Code somente para alunos desta turma.</p>
     </div>`;
   window.print();
-}
+};
 
-// ── Notas ─────────────────────────────────────────────────────────────────────
-function ensureNotas(){
-  if(!activeTurma||!DB.turmas[activeTurma])return;
-  for(const g of Object.values(DB.turmas[activeTurma].grupos||{})){
-    if(!g.notas)g.notas={};
-    for(const f of GRADE_FIELDS)if(!(f.key in g.notas))g.notas[f.key]=null;
-  }
-}
+// ── Notas ────────────────────────────────────────────────────────────────────
 function renderNotas(){
-  if(!activeTurma||!DB.turmas[activeTurma]){document.getElementById("notas-content").innerHTML=`<div class="empty-state"><p>Selecione uma turma.</p></div>`;return;}
-  ensureNotas();
-  document.getElementById("turma-title").textContent="Turma: "+turmaNome();
-  const grupos=DB.turmas[activeTurma].grupos||{};
-  const container=document.getElementById("notas-content");
-  if(!Object.keys(grupos).length){container.innerHTML=`<div class="empty-state"><div style="font-size:40px;margin-bottom:10px;">📂</div><p>Nenhum grupo criado ainda.</p></div>`;return;}
-  let html="";
-  for(const [gid,g] of Object.entries(grupos)){
-    const alunos=g.alunos||[],notas=g.notas||{};
-    const total=GRADE_FIELDS.map(f=>Number(notas[f.key])||0).reduce((a,b)=>a+b,0);
-    const totColor=total>=45?"var(--green)":total>=25?"var(--orange)":"var(--red)";
-    html+=`<div class="group-section">
+  const container = $("notas-content");
+  if (!activeTurma) { container.innerHTML = `<div class="empty-state"><p>Selecione uma turma.</p></div>`; return; }
+  if (!grupos.length) {
+    container.innerHTML = `<div class="empty-state"><div style="font-size:38px;margin-bottom:10px;">📂</div><p>Nenhum grupo criado ainda.</p></div>`;
+    return;
+  }
+  container.innerHTML = grupos.map(g => {
+    const alunos = g.alunos || [], notas = g.notas || {};
+    const total = GRADE_FIELDS.reduce((s, f) => s + (Number(notas[f.key]) || 0), 0);
+    const cor = total >= 45 ? "var(--green)" : total >= 25 ? "var(--orange)" : "var(--red)";
+    const linhas = alunos.length === 0
+      ? `<tr><td colspan="${GRADE_FIELDS.length + 2}" style="color:var(--muted);font-style:italic;">Nenhum aluno neste grupo.</td></tr>`
+      : alunos.map(a => `<tr>
+          <td><b>${esc(alunoNome(a))}</b>${g.representante === alunoNome(a) ? " 👑" : ""}</td>
+          ${GRADE_FIELDS.map(f => `<td><input type="number" min="0" max="${f.max}" class="grade-input"
+             value="${notas[f.key] != null ? notas[f.key] : ""}" placeholder="—"
+             data-nota-grupo="${esc(g.id)}" data-nota-campo="${f.key}" data-nota-max="${f.max}"/></td>`).join("")}
+          <td><span class="total-badge" data-total="${esc(g.id)}" style="color:${cor};">${total}/${GRADE_MAX}</span></td>
+        </tr>`).join("");
+    return `<div class="group-section">
       <div class="group-section-title">
         <span>📁 ${esc(g.nome)}</span>
-        ${g.tema?`<span style="font-size:12px;color:var(--muted);font-weight:400;">— ${esc(g.tema)}</span>`:""}
-        ${g.representante?`<span class="tag" style="background:rgba(251,191,36,.13);color:var(--yellow);border:1px solid rgba(251,191,36,.27);font-size:11px;">👑 ${esc(g.representante)}</span>`:""}
+        ${g.tema ? `<span style="font-size:12px;color:var(--muted);font-weight:400;">— ${esc(g.tema)}</span>` : ""}
+        ${g.representante ? `<span class="tag" style="background:rgba(251,191,36,.13);color:var(--yellow);border:1px solid rgba(251,191,36,.27);font-size:11px;">👑 ${esc(g.representante)}</span>` : ""}
       </div>
-      <div style="overflow-x:auto;">
-      <table class="grades-table"><thead><tr>
-        <th>Aluno</th>
-        ${GRADE_FIELDS.map(f=>`<th>${esc(f.label)}<br/><span style="font-weight:400;font-size:10px;">até ${f.max} pts</span></th>`).join("")}
-        <th>Total<br/><span style="font-weight:400;font-size:10px;">/ ${GRADE_MAX} pts</span></th>
-      </tr></thead><tbody>`;
-    if(alunos.length===0){
-      html+=`<tr><td colspan="${GRADE_FIELDS.length+2}" style="color:var(--muted);font-style:italic;">Nenhum aluno neste grupo.</td></tr>`;
-    } else {
-      alunos.forEach(aluno=>{
-        html+=`<tr>
-          <td><b>${esc(aluno)}</b>${g.representante===aluno?" 👑":""}</td>
-          ${GRADE_FIELDS.map(f=>{
-            const v=notas[f.key]!=null?notas[f.key]:"";
-            return `<td><input type="number" min="0" max="${f.max}" class="grade-input" value="${v}" placeholder="—" onchange="saveNota('${gid}','${f.key}',this.value,${f.max})"/></td>`;
-          }).join("")}
-          <td><span id="gtotal-${gid}" class="total-badge" style="color:${totColor};">${total}/${GRADE_MAX}</span></td>
-        </tr>`;
-      });
-    }
-    html+=`</tbody></table></div></div>`;
-  }
-  container.innerHTML=html;
-}
-function saveNota(gid,field,rawVal,max){
-  if(!DB.turmas[activeTurma].grupos[gid].notas)DB.turmas[activeTurma].grupos[gid].notas={};
-  let val=rawVal===""?null:Math.min(max,Math.max(0,Number(rawVal)));
-  DB.turmas[activeTurma].grupos[gid].notas[field]=val;
-  persist();
-  const g=DB.turmas[activeTurma].grupos[gid],notas=g.notas||{};
-  const total=GRADE_FIELDS.map(f=>Number(notas[f.key])||0).reduce((a,b)=>a+b,0);
-  const color=total>=45?"var(--green)":total>=25?"var(--orange)":"var(--red)";
-  const el=document.getElementById(`gtotal-${gid}`);
-  if(el){el.textContent=`${total}/${GRADE_MAX}`;el.style.color=color;}
+      <div class="table-wrap">
+        <table class="grades-table"><thead><tr>
+          <th>Aluno</th>
+          ${GRADE_FIELDS.map(f => `<th>${esc(f.label)}<br/><span style="font-weight:400;font-size:10px;">até ${f.max} pts</span></th>`).join("")}
+          <th>Total<br/><span style="font-weight:400;font-size:10px;">/ ${GRADE_MAX} pts</span></th>
+        </tr></thead><tbody>${linhas}</tbody></table>
+      </div>
+    </div>`;
+  }).join("");
 }
 
-// ── Export XLSX ───────────────────────────────────────────────────────────────
-function exportXLSX(){
-  if(!activeTurma||!DB.turmas[activeTurma]){toast("Selecione uma turma.","#f87171");return;}
-  ensureNotas();
-  const grupos=DB.turmas[activeTurma].grupos||{};
-  const wb=XLSX.utils.book_new();
-  const rows=[
-    ["LANÇAMENTO DE NOTAS — Turma: "+turmaNome()],[],
-    ["Grupo","Tema","Aluno","Representante","Entrega Preliminar (10pts)","Entrega Final (20pts)","Apresentação Final (20pts)","TOTAL (50pts)"]
+const notaTimers = {};
+$("notas-content").addEventListener("input", (e) => {
+  const inp = e.target.closest("[data-nota-grupo]");
+  if (!inp) return;
+  const gid = inp.dataset.notaGrupo, campo = inp.dataset.notaCampo, max = Number(inp.dataset.notaMax);
+  const g = grupos.find(x => x.id === gid);
+  if (!g) return;
+  const val = inp.value === "" ? null : Math.min(max, Math.max(0, Number(inp.value)));
+  const notas = { ...(g.notas || {}), [campo]: val };
+  g.notas = notas; // reflete de imediato no total exibido
+
+  const total = GRADE_FIELDS.reduce((s, f) => s + (Number(notas[f.key]) || 0), 0);
+  const cor = total >= 45 ? "var(--green)" : total >= 25 ? "var(--orange)" : "var(--red)";
+  document.querySelectorAll(`[data-total="${CSS.escape(gid)}"]`).forEach(el => {
+    el.textContent = `${total}/${GRADE_MAX}`; el.style.color = cor;
+  });
+  // Debounce: uma gravação por pausa de digitação, não uma por tecla.
+  clearTimeout(notaTimers[gid]);
+  notaTimers[gid] = setTimeout(() => {
+    gravar(() => updateDoc(doc(db, "turmas", activeTurma, "grupos", gid), { notas }), "Erro ao salvar nota");
+  }, 700);
+});
+
+// ── Exportações ──────────────────────────────────────────────────────────────
+$("btn-export-xlsx").onclick = () => {
+  if (!activeTurma || !grupos.length) { toast("Nada para exportar.", "#f87171"); return; }
+  const rows = [
+    ["LANÇAMENTO DE NOTAS — Turma: " + turmaNome()], [],
+    ["Grupo","Tema","Aluno","Matrícula","Representante","Entrega Preliminar (10pts)","Entrega Final (20pts)","Apresentação Final (20pts)","TOTAL (50pts)"],
   ];
-  for(const [,g] of Object.entries(grupos)){
-    const n=g.notas||{},ep=n.entrega_preliminar!=null?n.entrega_preliminar:"",ef=n.entrega_final!=null?n.entrega_final:"",af=n.apresentacao_final!=null?n.apresentacao_final:"";
-    const total=(Number(ep)||0)+(Number(ef)||0)+(Number(af)||0);
-    const alunos=g.alunos||[];
-    if(!alunos.length) rows.push([g.nome,g.tema||"","(sem alunos)","",(ep!==""?ep:""),(ef!==""?ef:""),(af!==""?af:""),(ep!==""||ef!==""||af!==""?total:"")]);
-    else alunos.forEach(a=>rows.push([g.nome,g.tema||"",a,a===g.representante?"Sim":"",(ep!==""?ep:""),(ef!==""?ef:""),(af!==""?af:""),(ep!==""||ef!==""||af!==""?total:"")]));
+  for (const g of grupos) {
+    const n = g.notas || {};
+    const ep = n.entrega_preliminar ?? "", ef = n.entrega_final ?? "", af = n.apresentacao_final ?? "";
+    const tem = ep !== "" || ef !== "" || af !== "";
+    const total = tem ? (Number(ep)||0) + (Number(ef)||0) + (Number(af)||0) : "";
+    const alunos = g.alunos || [];
+    if (!alunos.length) rows.push([g.nome, g.tema || "", "(sem alunos)", "", "", ep, ef, af, total]);
+    else alunos.forEach(a => rows.push([
+      g.nome, g.tema || "", alunoNome(a), alunoMat(a),
+      alunoNome(a) === g.representante ? "Sim" : "", ep, ef, af, total,
+    ]));
     rows.push([]);
   }
-  const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws["!cols"]=[{wch:20},{wch:25},{wch:30},{wch:14},{wch:22},{wch:20},{wch:22},{wch:14}];
-  XLSX.utils.book_append_sheet(wb,ws,"Notas");
-  XLSX.writeFile(wb,`notas-${turmaNome().replace(/\s/g,"_")}.xlsx`);
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"] = [{wch:20},{wch:25},{wch:30},{wch:14},{wch:14},{wch:22},{wch:20},{wch:22},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Notas");
+  XLSX.writeFile(wb, `notas-${turmaNome().replace(/[^\w\-]+/g, "_").slice(0, 60)}.xlsx`);
   toast("Planilha exportada!");
-}
+};
 
-// ── Export PDF ────────────────────────────────────────────────────────────────
-function exportPDF(){
-  if(!activeTurma||!DB.turmas[activeTurma]){toast("Selecione uma turma.","#f87171");return;}
-  ensureNotas();
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:"landscape",unit:"mm",format:"a4"});
-  const grupos=Object.entries(DB.turmas[activeTurma].grupos||{});
-  const PW=297,PH=210,M=14,ROW=8;
-  const COLS=[60,50,32,32,32,28];
-  const DARK=[21,25,39],ACCENT=[79,142,247],MUTED=[123,130,160],WHITE=[232,234,246],GREEN=[52,211,153],ORANGE=[251,146,60],RED=[248,113,113];
+$("btn-export-pdf").onclick = () => {
+  if (!activeTurma || !grupos.length) { toast("Nada para exportar.", "#f87171"); return; }
+  const { jsPDF } = window.jspdf;
+  const docx = new jsPDF({ orientation:"landscape", unit:"mm", format:"a4" });
+  const PW = 297, PH = 210, M = 14, ROW = 8;
+  const COLS = [60, 50, 32, 32, 32, 28];
+  const DARK=[21,25,39], ACCENT=[79,142,247], MUTED=[123,130,160], WHITE=[232,234,246],
+        GREEN=[52,211,153], ORANGE=[251,146,60], RED=[248,113,113];
+  let y = 20;
 
-  doc.setFillColor(...DARK);doc.rect(0,0,PW,PH,"F");
-  doc.setFillColor(...ACCENT);doc.rect(0,0,PW,12,"F");
-  doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(255,255,255);
-  doc.text("LANÇAMENTO DE NOTAS — Turma: "+turmaNome(),M,8.5);
-  doc.setFontSize(9);doc.setTextColor(...MUTED);
-  doc.text("Gerado em "+new Date().toLocaleDateString("pt-BR"),PW-M,8.5,{align:"right"});
-  let y=20;
+  docx.setFillColor(...DARK); docx.rect(0, 0, PW, PH, "F");
+  docx.setFillColor(...ACCENT); docx.rect(0, 0, PW, 12, "F");
+  docx.setFont("helvetica","bold"); docx.setFontSize(13); docx.setTextColor(255,255,255);
+  docx.text("LANÇAMENTO DE NOTAS — Turma: " + turmaNome(), M, 8.5);
+  docx.setFontSize(9); docx.setTextColor(...MUTED);
+  docx.text("Gerado em " + new Date().toLocaleDateString("pt-BR"), PW - M, 8.5, { align:"right" });
 
-  function drawHeader(){
-    const hdrs=["Aluno / Grupo","Tema","Entrega Preliminar\n(até 10pts)","Entrega Final\n(até 20pts)","Apresentação Final\n(até 20pts)","TOTAL\n(50pts)"];
-    doc.setFillColor(30,35,60);doc.rect(M,y,PW-M*2,10,"F");
-    doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(...WHITE);
-    let x=M;hdrs.forEach((h,i)=>{doc.text(h,x+2,y+4.5,{maxWidth:COLS[i]-3});x+=COLS[i];});y+=10;
+  function header(){
+    const hdrs = ["Aluno / Grupo","Tema","Entrega Preliminar\n(até 10pts)","Entrega Final\n(até 20pts)","Apresentação Final\n(até 20pts)","TOTAL\n(50pts)"];
+    docx.setFillColor(30,35,60); docx.rect(M, y, PW - M*2, 10, "F");
+    docx.setFont("helvetica","bold"); docx.setFontSize(8); docx.setTextColor(...WHITE);
+    let x = M; hdrs.forEach((h,i) => { docx.text(h, x+2, y+4.5, { maxWidth: COLS[i]-3 }); x += COLS[i]; });
+    y += 10;
   }
-  function drawRow(cells,isGrupo,nota){
-    if(y>PH-20){doc.addPage();doc.setFillColor(...DARK);doc.rect(0,0,PW,PH,"F");y=14;drawHeader();}
-    doc.setFillColor(...(isGrupo?[35,40,60]:[21,25,39]));doc.rect(M,y,PW-M*2,ROW,"F");
-    doc.setDrawColor(46,51,80);doc.rect(M,y,PW-M*2,ROW,"S");
-    doc.setFont("helvetica",isGrupo?"bold":"normal");doc.setFontSize(8);
-    let x=M;
-    cells.forEach((cell,i)=>{
-      let color=WHITE;
-      if(i===5&&nota!=null) color=nota>=45?GREEN:nota>=25?ORANGE:RED;
-      doc.setTextColor(...color);doc.text(String(cell??"—"),x+2,y+5.2,{maxWidth:COLS[i]-3});x+=COLS[i];
-    });y+=ROW;
+  function row(cells, isGrupo, nota){
+    if (y > PH - 20) { docx.addPage(); docx.setFillColor(...DARK); docx.rect(0,0,PW,PH,"F"); y = 14; header(); }
+    docx.setFillColor(...(isGrupo ? [35,40,60] : [21,25,39])); docx.rect(M, y, PW - M*2, ROW, "F");
+    docx.setDrawColor(46,51,80); docx.rect(M, y, PW - M*2, ROW, "S");
+    docx.setFont("helvetica", isGrupo ? "bold" : "normal"); docx.setFontSize(8);
+    let x = M;
+    cells.forEach((cell,i) => {
+      let color = WHITE;
+      if (i === 5 && nota != null) color = nota >= 45 ? GREEN : nota >= 25 ? ORANGE : RED;
+      docx.setTextColor(...color);
+      docx.text(String(cell ?? "—"), x+2, y+5.2, { maxWidth: COLS[i]-3 });
+      x += COLS[i];
+    });
+    y += ROW;
   }
-  drawHeader();
-  for(const [,g] of grupos){
-    const n=g.notas||{},ep=n.entrega_preliminar!=null?n.entrega_preliminar:"",ef=n.entrega_final!=null?n.entrega_final:"",af=n.apresentacao_final!=null?n.apresentacao_final:"";
-    const has=ep!==""||ef!==""||af!=="";
-    const total=has?(Number(ep)||0)+(Number(ef)||0)+(Number(af)||0):null;
-    drawRow([`📁 ${g.nome}`,g.tema||"—",ep!==""?ep+"pts":"—",ef!==""?ef+"pts":"—",af!==""?af+"pts":"—",has?total+"/50":"—"],true,total);
-    const alunos=g.alunos||[];
-    if(!alunos.length) drawRow(["  (sem alunos)","","","","",""],false,null);
-    else alunos.forEach(a=>drawRow([`  ${a}${g.representante===a?" 👑":""}`,g.tema||"—",ep!==""?ep+"pts":"—",ef!==""?ef+"pts":"—",af!==""?af+"pts":"—",has?total+"/50":"—"],false,total));
-    y+=2;
+  header();
+  for (const g of grupos) {
+    const n = g.notas || {};
+    const ep = n.entrega_preliminar ?? "", ef = n.entrega_final ?? "", af = n.apresentacao_final ?? "";
+    const tem = ep !== "" || ef !== "" || af !== "";
+    const total = tem ? (Number(ep)||0) + (Number(ef)||0) + (Number(af)||0) : null;
+    const cel = (v, s) => v !== "" ? v + s : "—";
+    row([`${g.nome}`, g.tema || "—", cel(ep,"pts"), cel(ef,"pts"), cel(af,"pts"), tem ? total + "/50" : "—"], true, total);
+    const alunos = g.alunos || [];
+    if (!alunos.length) row(["  (sem alunos)","","","","",""], false, null);
+    else alunos.forEach(a => row([
+      `  ${alunoNome(a)}${g.representante === alunoNome(a) ? " (rep.)" : ""}`,
+      g.tema || "—", cel(ep,"pts"), cel(ef,"pts"), cel(af,"pts"), tem ? total + "/50" : "—",
+    ], false, total));
+    y += 2;
   }
-  doc.setFont("helvetica","italic");doc.setFontSize(7);doc.setTextColor(...MUTED);
-  doc.text("Grupos de Projeto — lançamento de notas",M,PH-6);
-  doc.save(`notas-${turmaNome().replace(/\s/g,"_")}.pdf`);
+  docx.setFont("helvetica","italic"); docx.setFontSize(7); docx.setTextColor(...MUTED);
+  docx.text("Grupos de Projeto — lançamento de notas", M, PH - 6);
+  docx.save(`notas-${turmaNome().replace(/[^\w\-]+/g, "_").slice(0, 60)}.pdf`);
   toast("PDF exportado!");
+};
+
+// ── Fluxo do aluno ───────────────────────────────────────────────────────────
+function resetStudentForm(){
+  $("student-name").value = "";
+  $("student-mat").value = "";
+  $("student-grupos").innerHTML = "";
+  $("already-in").style.display = "none";
+  const semTurmaFixa = !fixedTurma;
+  $("turma-select-wrap").style.display = semTurmaFixa ? "flex" : "none";
+  $("turma-badge").style.display = semTurmaFixa ? "none" : "block";
+  $("turma-hint").style.display  = semTurmaFixa ? "block" : "none";
 }
 
-// ── Student ───────────────────────────────────────────────────────────────────
-function renderStudentTurmas(){
-  const sel=document.getElementById("student-turma");
-  if(fixedTurma){return;}
-  const prev=sel.value;
-  sel.innerHTML=`<option value="">Selecione a turma…</option>`;
-  // List all turmas (from every professor), value=id, label=name
-  const entries=Object.entries(DB.turmas||{}).sort((a,b)=>((a[1].nome||"")+"").localeCompare((b[1].nome||"")+""));
-  for(const [id,t] of entries){
-    const nome=t.nome||id;
-    sel.innerHTML+=`<option value="${id}"${prev===id?" selected":""}>${esc(nome)}</option>`;
+async function carregarTurmasParaAluno(){
+  const sel = $("student-turma");
+  try {
+    const qs = await getDocs(collection(db, "turmas"));
+    const lista = qs.docs.map(d => ({ id:d.id, ...d.data() })).sort(porNome);
+    sel.innerHTML = `<option value="">Selecione a turma…</option>` +
+      lista.map(t => `<option value="${esc(t.id)}">${esc(t.nome)}</option>`).join("");
+  } catch (e) {
+    sel.innerHTML = `<option value="">Não foi possível carregar as turmas</option>`;
+    toast(msgFirebase(e), "#f87171");
   }
 }
 
-function getCurrentTurma(){
-  return fixedTurma || document.getElementById("student-turma").value;
+$("student-turma").addEventListener("change", async (e) => {
+  const id = e.target.value;
+  $("already-in").style.display = "none";
+  if (!id) { gruposAluno = []; turmaAluno = null; $("student-grupos").innerHTML = ""; return; }
+  const s = await getDoc(doc(db, "turmas", id));
+  if (!s.exists()) return;
+  turmaAluno = { id:s.id, ...s.data() };
+  assinarGruposAluno(id);
+});
+
+function abrirAlunoNaTurma(turma){
+  fixedTurma = turma.id;
+  turmaAluno = turma;
+  resetStudentForm();
+  $("turma-badge-text").textContent = "📚 " + turma.nome;
+  assinarGruposAluno(turma.id);
+  showScreen("student-screen");
+}
+
+function assinarGruposAluno(turmaId){
+  if (unsubAlunoGrupos) { unsubAlunoGrupos(); unsubAlunoGrupos = null; }
+  unsubAlunoGrupos = onSnapshot(collection(db, "turmas", turmaId, "grupos"),
+    (qs) => { gruposAluno = qs.docs.map(d => ({ id:d.id, ...d.data() })).sort(porNome); renderStudentGrupos(); },
+    (e)  => { console.error(e); toast("Erro ao carregar grupos: " + msgFirebase(e), "#f87171"); });
 }
 
 function renderStudentGrupos(){
-  const turma=getCurrentTurma();
-  const container=document.getElementById("student-grupos");
-  document.getElementById("already-in").style.display="none";
-  if(!turma||!DB.turmas[turma]){container.innerHTML="";return;}
-  const grupos=DB.turmas[turma].grupos||{};
-  if(!Object.keys(grupos).length){container.innerHTML=`<p style="color:var(--muted);font-size:13px;">Nenhum grupo criado ainda.</p>`;return;}
-  let html=`<div style="display:flex;flex-direction:column;gap:10px;">`;
-  for(const [gid,g] of Object.entries(grupos)){
-    const n=(g.alunos||[]).length,cheio=g.limite>0&&n>=g.limite;
-    const pct=g.limite?Math.min(100,n/g.limite*100):0;
-    const cor=cheio?"var(--red)":pct>70?"var(--orange)":"var(--green)";
-    html+=`<div class="grupo-item${cheio?" full":""}">
+  const container = $("student-grupos");
+  const fechada = turmaAluno && turmaAluno.inscricoesAbertas === false;
+  if (fechada) {
+    container.innerHTML = `<div style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:10px;padding:14px;font-size:13px;color:var(--red);">
+      🔒 As inscrições desta turma estão fechadas. Procure seu professor.</div>`;
+    return;
+  }
+  if (!gruposAluno.length) {
+    container.innerHTML = `<p style="color:var(--muted);font-size:13px;">Nenhum grupo criado ainda nesta turma.</p>`;
+    return;
+  }
+  container.innerHTML = `<div style="display:flex;flex-direction:column;gap:10px;">` + gruposAluno.map(g => {
+    const n = (g.alunos || []).length;
+    const limite = Number(g.limite) || 0;
+    const cheio = limite > 0 && n >= limite;
+    const pct = limite ? Math.min(100, n / limite * 100) : 0;
+    const cor = cheio ? "var(--red)" : pct > 70 ? "var(--orange)" : "var(--green)";
+    return `<div class="grupo-item${cheio ? " full" : ""}">
       <div class="grupo-top">
-        <div><b style="font-size:15px;">${esc(g.nome)}</b>${g.tema?`<p style="color:var(--muted);font-size:12px;margin-top:2px;">📚 ${esc(g.tema)}</p>`:""}</div>
+        <div style="min-width:0;">
+          <b style="font-size:15px;">${esc(g.nome)}</b>
+          ${g.tema ? `<p style="color:var(--muted);font-size:12px;margin-top:2px;">📚 ${esc(g.tema)}</p>` : ""}
+        </div>
         ${cheio
-          ?`<span class="tag" style="background:rgba(248,113,113,.13);color:var(--red);border:1px solid rgba(248,113,113,.27);">Cheio</span>`
-          :`<span class="tag" style="background:rgba(52,211,153,.13);color:var(--green);border:1px solid rgba(52,211,153,.27);">${g.limite?`${n}/${g.limite} vagas`:`${n} aluno${n!==1?"s":""}`}</span>`}
+          ? `<span class="tag" style="background:rgba(248,113,113,.13);color:var(--red);border:1px solid rgba(248,113,113,.27);">Cheio</span>`
+          : `<span class="tag" style="background:rgba(52,211,153,.13);color:var(--green);border:1px solid rgba(52,211,153,.27);">${limite ? `${n}/${limite} vagas` : `${n} aluno${n !== 1 ? "s" : ""}`}</span>`}
       </div>
-      ${g.limite>0?`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:11px;color:var(--muted);">VAGAS</span><span style="font-size:12px;color:${cor};font-weight:600;">${n}/${g.limite}${cheio?" • CHEIO":""}</span></div><div class="vagas-track"><div class="vagas-fill" style="width:${pct}%;background:${cor};"></div></div></div>`:""}
-      <button class="btn btn-sm ${cheio?"btn-ghost":"btn-success"}" ${cheio?"disabled":""} onclick="joinGrupo('${gid}','${esc(g.nome).replace(/'/g,"\\'")}')">
-        ${cheio?"Grupo cheio":"Entrar neste grupo"}
+      ${limite > 0 ? `<div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:11px;color:var(--muted);">VAGAS</span>
+          <span style="font-size:12px;color:${cor};font-weight:600;">${n}/${limite}${cheio ? " • CHEIO" : ""}</span>
+        </div>
+        <div class="vagas-track"><div class="vagas-fill" style="width:${pct}%;background:${cor};"></div></div>
+      </div>` : ""}
+      <button class="btn btn-sm ${cheio ? "btn-ghost" : "btn-success"}" ${cheio ? "disabled" : ""}
+        data-entrar="${esc(g.id)}" style="width:100%;">
+        ${cheio ? "Grupo cheio" : "Entrar neste grupo"}
       </button>
     </div>`;
-  }
-  html+="</div>";container.innerHTML=html;
+  }).join("") + `</div>`;
 }
 
-function joinGrupo(gid,gNome){
-  fbGet().then(fresh=>{
-    if(fresh) DB=fresh;
-    const name=document.getElementById("student-name").value.trim();
-    if(!name){alert("Digite seu nome antes de entrar em um grupo.");return;}
-    const turma=getCurrentTurma();
-    if(!turma){alert("Selecione sua turma.");return;}
-    const alreadyEl=document.getElementById("already-in");
-    for(const [,g] of Object.entries(DB.turmas[turma]?.grupos||{})){
-      if((g.alunos||[]).find(a=>a.toLowerCase()===name.toLowerCase())){
-        alreadyEl.innerHTML=`⚠️ Você já está no grupo <b>${esc(g.nome)}</b> desta turma.`;
-        alreadyEl.style.display="block";return;
+$("student-grupos").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-entrar]");
+  if (b) entrarNoGrupo(b.dataset.entrar, b);
+});
+
+async function entrarNoGrupo(gid, botao){
+  const nome = $("student-name").value.trim();
+  const mat  = $("student-mat").value.trim();
+  const alerta = $("already-in");
+  const turmaId = fixedTurma || $("student-turma").value;
+
+  if (!turmaId) { toast("Selecione sua turma.", "#f87171"); return; }
+  if (nome.length < 3) { toast("Digite seu nome completo.", "#f87171"); $("student-name").focus(); return; }
+  const mk = normMat(mat);
+  if (mk.length < 3) { toast("Digite sua matrícula.", "#f87171"); $("student-mat").focus(); return; }
+
+  // Checagem local antecipada, para dar a mensagem certa antes de tentar gravar.
+  const jaInscrito = (lista) => lista.find(x => (x.alunos || []).some(a => normMat(alunoMat(a)) === mk));
+  const avisarDuplicado = (grupo) => {
+    alerta.innerHTML = grupo
+      ? `⚠️ A matrícula <b>${esc(mk)}</b> já está inscrita no grupo <b>${esc(grupo.nome)}</b> desta turma.`
+      : `⚠️ A matrícula <b>${esc(mk)}</b> já foi usada nesta turma. Fale com seu professor.`;
+    alerta.style.display = "block";
+  };
+  const local = jaInscrito(gruposAluno);
+  if (local) { avisarDuplicado(local); return; }
+
+  botao.disabled = true;
+  const txt = botao.textContent; botao.textContent = "Entrando…";
+  try {
+    // Até 3 tentativas: se outro aluno entrar no mesmo instante, as regras
+    // recusam a escrita com a lista desatualizada e nós repetimos com a atual.
+    for (let tentativa = 0; tentativa < 3; tentativa++) {
+      const gSnap = await getDoc(doc(db, "turmas", turmaId, "grupos", gid));
+      if (!gSnap.exists()) { toast("Grupo não encontrado.", "#f87171"); return; }
+      const g = gSnap.data();
+      const alunos = g.alunos || [];
+      const limite = Number(g.limite) || 0;
+      if (limite > 0 && alunos.length >= limite) { toast("Este grupo acabou de ficar cheio.", "#f87171"); return; }
+      try {
+        const batch = writeBatch(db);
+        // Trava de unicidade: o documento tem a matrícula como id e as regras
+        // só permitem `create`. Se a matrícula já existe, a escrita vira um
+        // update e é recusada pelo servidor — nem o navegador nem uma corrida
+        // entre dois alunos conseguem furar isso.
+        batch.set(doc(db, "turmas", turmaId, "inscricoes", mk), {
+          nome, matricula: mk, grupoId: gid, uid: user?.uid || "", criadoEm: serverTimestamp(),
+        });
+        batch.update(doc(db, "turmas", turmaId, "grupos", gid), {
+          alunos: [...alunos, { nome, matricula: mk, uid: user?.uid || "" }],
+        });
+        await batch.commit();
+        $("success-msg").innerHTML =
+          `<b style="color:var(--text);">${esc(nome)}</b>, você entrou no grupo<br>
+           <span style="color:var(--green);font-weight:700;font-size:20px;">${esc(g.nome)}</span>`;
+        showScreen("success-screen");
+        return;
+      } catch (err) {
+        if (err?.code !== "permission-denied") throw err;
+        // A recusa tem duas causas possíveis: matrícula já inscrita, ou a lista
+        // de alunos mudou entre a leitura e a gravação. Releio para distinguir.
+        const fresh = await getDocs(collection(db, "turmas", turmaId, "grupos"));
+        const lista = fresh.docs.map(d => ({ id:d.id, ...d.data() }));
+        const dup = jaInscrito(lista);
+        if (dup) { avisarDuplicado(dup); return; }
+        if (tentativa === 2) break;
       }
     }
-    const g=DB.turmas[turma]?.grupos?.[gid];
-    if(!g){alert("Grupo não encontrado.");return;}
-    if(g.limite&&(g.alunos||[]).length>=g.limite){alert("Este grupo está cheio.");return;}
-    if(!g.alunos)g.alunos=[];
-    g.alunos.push(name);
-    fbSet(DB).then(()=>{
-      document.getElementById("success-msg").innerHTML=`<b style="color:var(--text);">${esc(name)}</b>, você entrou no grupo<br><span style="color:var(--green);font-weight:700;font-size:20px;">${esc(gNome)}</span>`;
-      showScreen("success-screen");
-    }).catch(e=>alert("Erro ao salvar: "+e.message));
-  }).catch(()=>{
-    const name=document.getElementById("student-name").value.trim();
-    const turma=getCurrentTurma();
-    const g=DB.turmas[turma]?.grupos?.[gid];
-    if(!g)return;
-    if(!g.alunos)g.alunos=[];
-    g.alunos.push(name);
-    fbSet(DB).then(()=>{
-      document.getElementById("success-msg").innerHTML=`<b style="color:var(--text);">${esc(name)}</b>, você entrou no grupo<br><span style="color:var(--green);font-weight:700;font-size:20px;">${esc(gNome)}</span>`;
-      showScreen("success-screen");
-    });
-  });
-}
-
-function goBackToStudent(){
-  if(fixedTurma){
-    // stay on same turma
-    resetStudentForm();
-    openStudentForTurma(fixedTurma);
-  } else {
-    fixedTurma=null;
-    resetStudentForm();
-    renderStudentTurmas();
-    showScreen("student-screen");
+    toast("Muita gente entrando ao mesmo tempo. Tente novamente.", "#fb923c");
+  } catch (e) {
+    console.error(e);
+    toast("Não foi possível entrar: " + msgFirebase(e), "#f87171");
+  } finally {
+    botao.disabled = false; botao.textContent = txt;
   }
 }
 
-function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
-
-init();
+$("btn-back-student").onclick = async () => {
+  resetStudentForm();
+  if (!fixedTurma) await carregarTurmasParaAluno();
+  showScreen("student-screen");
+};
 </script>
 </body>
 </html>

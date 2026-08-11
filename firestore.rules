@@ -1,0 +1,165 @@
+rules_version = '2';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Grupos de Projeto — regras de segurança
+//
+// Modelo:
+//   professores/{uid}                    conta do professor (aprovacao manual)
+//   turmas/{turmaId}                     turma, pertence a um professor
+//   turmas/{turmaId}/grupos/{grupoId}    grupo do projeto
+//   turmas/{turmaId}/inscricoes/{matricula}  trava de unicidade do aluno
+//   app/dados                            documento legado (somente leitura p/ migração)
+//
+// Princípios:
+//   - O aluno é anônimo: pode ler turmas/grupos e SÓ pode se acrescentar a um
+//     grupo (nenhum outro campo, nunca removendo colegas).
+//   - O professor só enxerga e altera as próprias turmas.
+//   - Ninguém consegue se autoaprovar; só o admin muda `aprovado`/`admin`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // E-mail do administrador. Para trocar/adicionar admins, edite esta lista
+    // e publique as regras novamente.
+    function adminEmails() {
+      return ['uomagalhaes@gmail.com'];
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in adminEmails();
+    }
+
+    function profDoc() {
+      return get(/databases/$(database)/documents/professores/$(request.auth.uid)).data;
+    }
+
+    // Professor com conta criada E aprovada pelo admin.
+    function isAprovado() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/professores/$(request.auth.uid))
+        && profDoc().aprovado == true;
+    }
+
+    // ── Contas de professor ──────────────────────────────────────────────────
+    match /professores/{uid} {
+      // Cada professor lê a própria conta; o admin lê todas (fila de aprovação).
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+
+      // Cadastro: só do próprio uid, obrigatoriamente pendente e não-admin.
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.aprovado == false
+        && request.resource.data.admin == false
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 200
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.nome.size() <= 120;
+
+      // O próprio professor só edita o nome; nunca o status de aprovação.
+      allow update: if isAdmin()
+        || (isSignedIn()
+            && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome'])
+            && request.resource.data.nome is string
+            && request.resource.data.nome.size() > 0
+            && request.resource.data.nome.size() <= 120);
+
+      allow delete: if isAdmin();
+    }
+
+    // ── Turmas ───────────────────────────────────────────────────────────────
+    match /turmas/{turmaId} {
+      function turmaData() {
+        return get(/databases/$(database)/documents/turmas/$(turmaId)).data;
+      }
+      function isDono() {
+        return isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      }
+
+      // Leitura pública: o aluno precisa ver o nome da turma pelo link/QR.
+      allow read: if true;
+
+      allow create: if isAprovado()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.nome.size() <= 160;
+
+      allow update: if (isDono() && request.resource.data.ownerUid == resource.data.ownerUid)
+        || isAdmin();
+
+      allow delete: if isDono() || isAdmin();
+
+      // ── Grupos ─────────────────────────────────────────────────────────────
+      match /grupos/{grupoId} {
+        function donoDaTurma() {
+          return isSignedIn() && turmaData().ownerUid == request.auth.uid;
+        }
+        function inscricoesAbertas() {
+          return turmaData().get('inscricoesAbertas', true) == true;
+        }
+        // O aluno só pode acrescentar a si mesmo ao array `alunos`:
+        // nenhum outro campo muda, o array cresce exatamente 1 e os que já
+        // estavam continuam lá (impede remover ou substituir colegas).
+        function somenteAcrescentaAluno() {
+          let antes = resource.data.get('alunos', []);
+          let depois = request.resource.data.get('alunos', []);
+          let limite = resource.data.get('limite', 0);
+          return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['alunos'])
+            && depois.size() == antes.size() + 1
+            && depois[0:antes.size()] == antes
+            && (limite == 0 || depois.size() <= limite);
+        }
+
+        allow read: if true;
+        allow create, delete: if donoDaTurma() || isAdmin();
+        allow update: if donoDaTurma()
+          || isAdmin()
+          || (isSignedIn() && inscricoesAbertas() && somenteAcrescentaAluno());
+      }
+
+      // ── Inscrições (trava de unicidade por matrícula) ──────────────────────
+      // O id do documento é a matrícula normalizada. O Firestore recusa um
+      // `create` sobre id existente, então "um aluno, uma inscrição por turma"
+      // é garantido pelo servidor — não pelo navegador.
+      match /inscricoes/{matricula} {
+        allow read: if isSignedIn()
+          && (isAdmin() || get(/databases/$(database)/documents/turmas/$(turmaId)).data.ownerUid == request.auth.uid);
+        allow create: if isSignedIn()
+          && request.resource.data.matricula is string
+          && request.resource.data.matricula.size() > 0
+          && request.resource.data.nome is string
+          && request.resource.data.nome.size() > 0
+          && request.resource.data.nome.size() <= 120;
+        // Ninguém edita nem apaga uma inscrição — só o dono da turma, ao
+        // remover o aluno do grupo.
+        allow update: if false;
+        allow delete: if isSignedIn()
+          && (isAdmin() || get(/databases/$(database)/documents/turmas/$(turmaId)).data.ownerUid == request.auth.uid);
+      }
+    }
+
+    // ── Documento legado ─────────────────────────────────────────────────────
+    // Leitura permitida apenas para o admin executar a migração uma única vez.
+    // Escrita bloqueada: é isto que impede as versões antigas do app (index1/2/3)
+    // de sobrescrever o banco inteiro.
+    match /app/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Nada mais é acessível.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
