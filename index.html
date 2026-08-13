@@ -136,9 +136,18 @@
     .grades-table th:first-child { background:var(--surface); z-index:3; }
     .grade-input { width:74px; padding:6px 8px; font-size:13px; text-align:center; }
     .total-badge { font-weight:700; font-size:14px; }
+    .tema-chip {
+      font-size:12px; font-weight:500; cursor:pointer; border-radius:6px; padding:3px 9px;
+      background:rgba(167,139,250,.13); color:var(--accent2); border:1px solid rgba(167,139,250,.3);
+      display:inline-block; transition:filter .15s;
+    }
+    .tema-chip:hover { filter:brightness(1.25); }
+    .tema-chip.vazio { background:transparent; color:var(--muted); border-style:dashed; border-color:var(--border); }
+    .grades-table .mat { font-size:11px; color:var(--muted); font-weight:400; margin-top:2px; }
     .group-section { margin-bottom:26px; }
     .group-section-title { font-size:15px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     .export-bar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:20px; padding:14px; background:var(--card); border-radius:12px; border:1px solid var(--border); }
+    .export-bar .divisor { width:1px; height:26px; background:var(--border); }
     .qr-turma-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px; }
     .qr-turma-card .link-box { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; font-size:12px; color:var(--muted); word-break:break-all; font-family:monospace; }
     .qr-mini { background:#fff; border-radius:8px; padding:6px; display:inline-block; line-height:0; }
@@ -166,6 +175,7 @@
       .modal-box { padding:20px 16px; border-radius:14px; }
       .export-bar { flex-direction:column; align-items:stretch; }
       .export-bar .btn { width:100%; }
+      .export-bar .divisor { display:none; }
       .admin-tabs { width:100%; }
       .admin-tab { flex:1; padding:10px 12px; text-align:center; }
       .grupos-grid { grid-template-columns:1fr; }
@@ -435,10 +445,12 @@
 
         <div id="panel-notas" style="display:none;">
           <div class="export-bar">
-            <span style="font-size:14px;font-weight:600;">Exportar notas:</span>
+            <button class="btn btn-purple btn-sm" id="btn-ordem-notas">🔤 Ordem alfabética</button>
+            <span class="divisor"></span>
+            <span style="font-size:14px;font-weight:600;">Exportar:</span>
             <button class="btn btn-success btn-sm" id="btn-export-xlsx">📥 Excel (.xlsx)</button>
             <button class="btn btn-orange btn-sm" id="btn-export-pdf">📄 PDF</button>
-            <span style="font-size:12px;color:var(--muted);">Salvas automaticamente.</span>
+            <span style="font-size:12px;color:var(--muted);" id="ordem-hint">Agrupado por grupo. Notas salvas automaticamente.</span>
           </div>
           <div id="notas-content"></div>
         </div>
@@ -1056,7 +1068,9 @@ function assinarGrupos(){
     (qs) => {
       grupos = qs.docs.map(d => ({ id:d.id, ...d.data() })).sort(porNome);
       if (activeTab === "grupos") renderGrupos();
-      if (activeTab === "notas" && !document.activeElement?.classList.contains("grade-input")) renderNotas();
+      // Nunca re-renderizar por cima de um campo em edição (nota ou tema).
+      const editandoNotas = document.activeElement && $("notas-content").contains(document.activeElement);
+      if (activeTab === "notas" && !editandoNotas) renderNotas();
     },
     (e) => { console.error(e); toast("Erro ao carregar grupos: " + msgFirebase(e), "#f87171"); }
   );
@@ -1428,42 +1442,110 @@ $("btn-qr-print").onclick = () => {
 };
 
 // ── Notas ────────────────────────────────────────────────────────────────────
+// Duas visões dos mesmos dados: agrupada por grupo (conferência) e em ordem
+// alfabética da turma inteira (transcrição para o portal da faculdade).
+let notasAlfabetica = false;
+
+function totalDoGrupo(g){
+  return GRADE_FIELDS.reduce((s, f) => s + (Number((g.notas || {})[f.key]) || 0), 0);
+}
+function corTotal(total){
+  return total >= 45 ? "var(--green)" : total >= 25 ? "var(--orange)" : "var(--red)";
+}
+// Célula de nota: mesma origem (o grupo) em qualquer uma das duas visões.
+function inputNota(g, f){
+  const v = (g.notas || {})[f.key];
+  return `<td><input type="number" min="0" max="${f.max}" class="grade-input"
+    value="${v != null ? v : ""}" placeholder="—"
+    data-nota-grupo="${esc(g.id)}" data-nota-campo="${f.key}" data-nota-max="${f.max}"/></td>`;
+}
+// Tema clicável: é aqui que o professor insere ou corrige o tema sem sair da aba.
+function chipTema(g){
+  return g.tema
+    ? `<span class="tema-chip" data-tema-grupo="${esc(g.id)}" title="Clique para editar o tema">📚 ${esc(g.tema)}</span>`
+    : `<span class="tema-chip vazio" data-tema-grupo="${esc(g.id)}" title="Clique para definir o tema">📚 definir tema…</span>`;
+}
+const cabecalhoNotas = (colsIniciais) => `<thead><tr>
+  ${colsIniciais.map(c => `<th>${c}</th>`).join("")}
+  ${GRADE_FIELDS.map(f => `<th>${esc(f.label)}<br/><span style="font-weight:400;font-size:10px;">até ${f.max} pts</span></th>`).join("")}
+  <th>Total<br/><span style="font-weight:400;font-size:10px;">/ ${GRADE_MAX} pts</span></th>
+</tr></thead>`;
+
+// Todos os alunos da turma em ordem alfabética, cada um com o seu grupo.
+function alunosDaTurmaOrdenados(){
+  const linhas = [];
+  for (const g of grupos) for (const a of (g.alunos || [])) linhas.push({ aluno:a, grupo:g });
+  return linhas.sort((x, y) => collator.compare(alunoNome(x.aluno), alunoNome(y.aluno)));
+}
+
 function renderNotas(){
   const container = $("notas-content");
+  $("btn-ordem-notas").textContent = notasAlfabetica ? "📁 Agrupar por grupo" : "🔤 Ordem alfabética";
+  $("ordem-hint").textContent = notasAlfabetica
+    ? "Turma inteira em ordem alfabética. A nota é do grupo: alterá-la vale para todos os integrantes."
+    : "Agrupado por grupo. Notas salvas automaticamente.";
+
   if (!activeTurma) { container.innerHTML = `<div class="empty-state"><p>Selecione uma turma.</p></div>`; return; }
   if (!grupos.length) {
     container.innerHTML = `<div class="empty-state"><div style="font-size:38px;margin-bottom:10px;">📂</div><p>Nenhum grupo criado ainda.</p></div>`;
     return;
   }
-  container.innerHTML = grupos.map(g => {
-    const alunos = g.alunos || [], notas = g.notas || {};
-    const total = GRADE_FIELDS.reduce((s, f) => s + (Number(notas[f.key]) || 0), 0);
-    const cor = total >= 45 ? "var(--green)" : total >= 25 ? "var(--orange)" : "var(--red)";
+  container.innerHTML = notasAlfabetica ? notasEmOrdemAlfabetica() : notasPorGrupo();
+}
+
+function notasPorGrupo(){
+  return grupos.map(g => {
+    const alunos = g.alunos || [];
+    const total = totalDoGrupo(g);
+    const cor = corTotal(total);
     const linhas = alunos.length === 0
       ? `<tr><td colspan="${GRADE_FIELDS.length + 2}" style="color:var(--muted);font-style:italic;">Nenhum aluno neste grupo.</td></tr>`
       : alunos.map(a => `<tr>
           <td><b>${esc(alunoNome(a))}</b>${g.representante === alunoNome(a) ? " 👑" : ""}</td>
-          ${GRADE_FIELDS.map(f => `<td><input type="number" min="0" max="${f.max}" class="grade-input"
-             value="${notas[f.key] != null ? notas[f.key] : ""}" placeholder="—"
-             data-nota-grupo="${esc(g.id)}" data-nota-campo="${f.key}" data-nota-max="${f.max}"/></td>`).join("")}
+          ${GRADE_FIELDS.map(f => inputNota(g, f)).join("")}
           <td><span class="total-badge" data-total="${esc(g.id)}" style="color:${cor};">${total}/${GRADE_MAX}</span></td>
         </tr>`).join("");
     return `<div class="group-section">
       <div class="group-section-title">
         <span>📁 ${esc(g.nome)}</span>
-        ${g.tema ? `<span style="font-size:12px;color:var(--muted);font-weight:400;">— ${esc(g.tema)}</span>` : ""}
+        ${chipTema(g)}
         ${g.representante ? `<span class="tag" style="background:rgba(251,191,36,.13);color:var(--yellow);border:1px solid rgba(251,191,36,.27);font-size:11px;">👑 ${esc(g.representante)}</span>` : ""}
       </div>
       <div class="table-wrap">
-        <table class="grades-table"><thead><tr>
-          <th>Aluno</th>
-          ${GRADE_FIELDS.map(f => `<th>${esc(f.label)}<br/><span style="font-weight:400;font-size:10px;">até ${f.max} pts</span></th>`).join("")}
-          <th>Total<br/><span style="font-weight:400;font-size:10px;">/ ${GRADE_MAX} pts</span></th>
-        </tr></thead><tbody>${linhas}</tbody></table>
+        <table class="grades-table">${cabecalhoNotas(["Aluno"])}<tbody>${linhas}</tbody></table>
       </div>
     </div>`;
   }).join("");
 }
+
+function notasEmOrdemAlfabetica(){
+  const linhas = alunosDaTurmaOrdenados();
+  if (!linhas.length) {
+    return `<div class="empty-state"><div style="font-size:38px;margin-bottom:10px;">🎓</div><p>Nenhum aluno inscrito ainda.</p></div>`;
+  }
+  const corpo = linhas.map(({ aluno, grupo }) => {
+    const total = totalDoGrupo(grupo);
+    const mat = alunoMat(aluno);
+    return `<tr>
+      <td><b>${esc(alunoNome(aluno))}</b>${grupo.representante === alunoNome(aluno) ? " 👑" : ""}
+        ${mat ? `<div class="mat">${esc(mat)}</div>` : ""}</td>
+      <td style="white-space:nowrap;">${esc(grupo.nome)}</td>
+      <td>${chipTema(grupo)}</td>
+      ${GRADE_FIELDS.map(f => inputNota(grupo, f)).join("")}
+      <td><span class="total-badge" data-total="${esc(grupo.id)}" style="color:${corTotal(total)};">${total}/${GRADE_MAX}</span></td>
+    </tr>`;
+  }).join("");
+  return `<div class="group-section">
+    <div class="group-section-title">
+      <span>🔤 ${linhas.length} aluno${linhas.length !== 1 ? "s" : ""} em ordem alfabética</span>
+    </div>
+    <div class="table-wrap">
+      <table class="grades-table">${cabecalhoNotas(["Aluno", "Grupo", "Tema"])}<tbody>${corpo}</tbody></table>
+    </div>
+  </div>`;
+}
+
+$("btn-ordem-notas").onclick = () => { notasAlfabetica = !notasAlfabetica; renderNotas(); };
 
 const notaTimers = {};
 $("notas-content").addEventListener("input", (e) => {
@@ -1477,10 +1559,15 @@ $("notas-content").addEventListener("input", (e) => {
   g.notas = notas; // reflete de imediato no total exibido
 
   const total = GRADE_FIELDS.reduce((s, f) => s + (Number(notas[f.key]) || 0), 0);
-  const cor = total >= 45 ? "var(--green)" : total >= 25 ? "var(--orange)" : "var(--red)";
+  const cor = corTotal(total);
   document.querySelectorAll(`[data-total="${CSS.escape(gid)}"]`).forEach(el => {
     el.textContent = `${total}/${GRADE_MAX}`; el.style.color = cor;
   });
+  // A nota pertence ao grupo, e o mesmo grupo aparece em várias linhas (uma por
+  // integrante). Sem isto, as outras linhas seguiriam mostrando o valor antigo.
+  document.querySelectorAll(
+    `[data-nota-grupo="${CSS.escape(gid)}"][data-nota-campo="${CSS.escape(campo)}"]`
+  ).forEach(el => { if (el !== inp) el.value = inp.value; });
   // Debounce: uma gravação por pausa de digitação, não uma por tecla.
   clearTimeout(notaTimers[gid]);
   notaTimers[gid] = setTimeout(() => {
@@ -1488,31 +1575,82 @@ $("notas-content").addEventListener("input", (e) => {
   }, 700);
 });
 
+// Edição do tema direto na aba de notas.
+$("notas-content").addEventListener("click", (e) => {
+  const chip = e.target.closest("[data-tema-grupo]");
+  if (!chip) return;
+  const gid = chip.dataset.temaGrupo;
+  const g = grupos.find(x => x.id === gid);
+  if (!g) return;
+
+  const box = document.createElement("span");
+  box.className = "inline-edit";
+  box.innerHTML = `<input value="${esc(g.tema || "")}" placeholder="Tema do grupo…" style="font-size:13px;max-width:260px;"/>
+                   <button class="ok-btn" type="button">OK</button>`;
+  chip.replaceWith(box);
+  const inp = box.querySelector("input");
+  inp.focus(); inp.select();
+
+  const salvar = async () => {
+    const novo = inp.value.trim();
+    if (novo === (g.tema || "")) { renderNotas(); return; }
+    await gravar(() => updateDoc(doc(db, "turmas", activeTurma, "grupos", gid), { tema: novo }), "Erro ao salvar tema");
+    renderNotas();
+  };
+  box.querySelector("button").onclick = salvar;
+  inp.onkeydown = (ev) => {
+    if (ev.key === "Enter") salvar();
+    if (ev.key === "Escape") renderNotas();
+  };
+});
+
 // ── Exportações ──────────────────────────────────────────────────────────────
+// Notas de um grupo já formatadas para exportação.
+function notasExport(g){
+  const n = g.notas || {};
+  const ep = n.entrega_preliminar ?? "", ef = n.entrega_final ?? "", af = n.apresentacao_final ?? "";
+  const tem = ep !== "" || ef !== "" || af !== "";
+  return { ep, ef, af, total: tem ? (Number(ep)||0) + (Number(ef)||0) + (Number(af)||0) : "" };
+}
+
 $("btn-export-xlsx").onclick = () => {
   if (!activeTurma || !grupos.length) { toast("Nada para exportar.", "#f87171"); return; }
-  const rows = [
-    ["LANÇAMENTO DE NOTAS — Turma: " + turmaNome()], [],
-    ["Grupo","Tema","Aluno","Matrícula","Representante","Entrega Preliminar (10pts)","Entrega Final (20pts)","Apresentação Final (20pts)","TOTAL (50pts)"],
-  ];
-  for (const g of grupos) {
-    const n = g.notas || {};
-    const ep = n.entrega_preliminar ?? "", ef = n.entrega_final ?? "", af = n.apresentacao_final ?? "";
-    const tem = ep !== "" || ef !== "" || af !== "";
-    const total = tem ? (Number(ep)||0) + (Number(ef)||0) + (Number(af)||0) : "";
-    const alunos = g.alunos || [];
-    if (!alunos.length) rows.push([g.nome, g.tema || "", "(sem alunos)", "", "", ep, ef, af, total]);
-    else alunos.forEach(a => rows.push([
-      g.nome, g.tema || "", alunoNome(a), alunoMat(a),
-      alunoNome(a) === g.representante ? "Sim" : "", ep, ef, af, total,
-    ]));
-    rows.push([]);
+  const titulo = "LANÇAMENTO DE NOTAS — Turma: " + turmaNome();
+  const notasCols = ["Entrega Preliminar (10pts)","Entrega Final (20pts)","Apresentação Final (20pts)","TOTAL (50pts)"];
+  let rows, cols;
+
+  if (notasAlfabetica) {
+    // Uma linha por aluno, em ordem alfabética: o formato que acompanha a
+    // digitação no portal da faculdade.
+    rows = [[titulo], ["Alunos em ordem alfabética"], [],
+            ["Aluno","Matrícula","Grupo","Tema","Representante", ...notasCols]];
+    for (const { aluno, grupo } of alunosDaTurmaOrdenados()) {
+      const { ep, ef, af, total } = notasExport(grupo);
+      rows.push([alunoNome(aluno), alunoMat(aluno), grupo.nome, grupo.tema || "",
+                 alunoNome(aluno) === grupo.representante ? "Sim" : "", ep, ef, af, total]);
+    }
+    cols = [{wch:34},{wch:14},{wch:20},{wch:28},{wch:14},{wch:22},{wch:20},{wch:22},{wch:14}];
+  } else {
+    rows = [[titulo], [], ["Grupo","Tema","Aluno","Matrícula","Representante", ...notasCols]];
+    for (const g of grupos) {
+      const { ep, ef, af, total } = notasExport(g);
+      const alunos = g.alunos || [];
+      if (!alunos.length) rows.push([g.nome, g.tema || "", "(sem alunos)", "", "", ep, ef, af, total]);
+      else alunos.forEach(a => rows.push([
+        g.nome, g.tema || "", alunoNome(a), alunoMat(a),
+        alunoNome(a) === g.representante ? "Sim" : "", ep, ef, af, total,
+      ]));
+      rows.push([]);
+    }
+    cols = [{wch:20},{wch:28},{wch:30},{wch:14},{wch:14},{wch:22},{wch:20},{wch:22},{wch:14}];
   }
+
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws["!cols"] = [{wch:20},{wch:25},{wch:30},{wch:14},{wch:14},{wch:22},{wch:20},{wch:22},{wch:14}];
+  ws["!cols"] = cols;
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Notas");
-  XLSX.writeFile(wb, `notas-${turmaNome().replace(/[^\w\-]+/g, "_").slice(0, 60)}.xlsx`);
+  const sufixo = notasAlfabetica ? "-alfabetica" : "";
+  XLSX.writeFile(wb, `notas-${turmaNome().replace(/[^\w\-]+/g, "_").slice(0, 60)}${sufixo}.xlsx`);
   toast("Planilha exportada!");
 };
 
@@ -1521,9 +1659,15 @@ $("btn-export-pdf").onclick = () => {
   const { jsPDF } = window.jspdf;
   const docx = new jsPDF({ orientation:"landscape", unit:"mm", format:"a4" });
   const PW = 297, PH = 210, M = 14, ROW = 8;
-  const COLS = [60, 50, 32, 32, 32, 28];
   const DARK=[21,25,39], ACCENT=[79,142,247], MUTED=[123,130,160], WHITE=[232,234,246],
         GREEN=[52,211,153], ORANGE=[251,146,60], RED=[248,113,113];
+  // Colunas e cabeçalho mudam conforme a visão escolhida na tela.
+  const notasHdr = ["Entrega Preliminar\n(até 10pts)","Entrega Final\n(até 20pts)","Apresentação Final\n(até 20pts)","TOTAL\n(50pts)"];
+  const COLS = notasAlfabetica ? [62, 38, 45, 28, 28, 28, 26] : [60, 50, 32, 32, 32, 28];
+  const HDRS = notasAlfabetica
+    ? ["Aluno","Grupo","Tema", ...notasHdr]
+    : ["Aluno / Grupo","Tema", ...notasHdr];
+  const COL_TOTAL = HDRS.length - 1;
   let y = 20;
 
   docx.setFillColor(...DARK); docx.rect(0, 0, PW, PH, "F");
@@ -1531,45 +1675,55 @@ $("btn-export-pdf").onclick = () => {
   docx.setFont("helvetica","bold"); docx.setFontSize(13); docx.setTextColor(255,255,255);
   docx.text("LANÇAMENTO DE NOTAS — Turma: " + turmaNome(), M, 8.5);
   docx.setFontSize(9); docx.setTextColor(...MUTED);
-  docx.text("Gerado em " + new Date().toLocaleDateString("pt-BR"), PW - M, 8.5, { align:"right" });
+  docx.text((notasAlfabetica ? "Ordem alfabética · " : "") + "Gerado em " + new Date().toLocaleDateString("pt-BR"),
+    PW - M, 8.5, { align:"right" });
 
   function header(){
-    const hdrs = ["Aluno / Grupo","Tema","Entrega Preliminar\n(até 10pts)","Entrega Final\n(até 20pts)","Apresentação Final\n(até 20pts)","TOTAL\n(50pts)"];
     docx.setFillColor(30,35,60); docx.rect(M, y, PW - M*2, 10, "F");
     docx.setFont("helvetica","bold"); docx.setFontSize(8); docx.setTextColor(...WHITE);
-    let x = M; hdrs.forEach((h,i) => { docx.text(h, x+2, y+4.5, { maxWidth: COLS[i]-3 }); x += COLS[i]; });
+    let x = M; HDRS.forEach((h,i) => { docx.text(h, x+2, y+4.5, { maxWidth: COLS[i]-3 }); x += COLS[i]; });
     y += 10;
   }
-  function row(cells, isGrupo, nota){
+  function row(cells, destaque, nota){
     if (y > PH - 20) { docx.addPage(); docx.setFillColor(...DARK); docx.rect(0,0,PW,PH,"F"); y = 14; header(); }
-    docx.setFillColor(...(isGrupo ? [35,40,60] : [21,25,39])); docx.rect(M, y, PW - M*2, ROW, "F");
+    docx.setFillColor(...(destaque ? [35,40,60] : [21,25,39])); docx.rect(M, y, PW - M*2, ROW, "F");
     docx.setDrawColor(46,51,80); docx.rect(M, y, PW - M*2, ROW, "S");
-    docx.setFont("helvetica", isGrupo ? "bold" : "normal"); docx.setFontSize(8);
+    docx.setFont("helvetica", destaque ? "bold" : "normal"); docx.setFontSize(8);
     let x = M;
     cells.forEach((cell,i) => {
       let color = WHITE;
-      if (i === 5 && nota != null) color = nota >= 45 ? GREEN : nota >= 25 ? ORANGE : RED;
+      if (i === COL_TOTAL && nota != null) color = nota >= 45 ? GREEN : nota >= 25 ? ORANGE : RED;
       docx.setTextColor(...color);
       docx.text(String(cell ?? "—"), x+2, y+5.2, { maxWidth: COLS[i]-3 });
       x += COLS[i];
     });
     y += ROW;
   }
+  const cel = (v, s) => v !== "" ? v + s : "—";
   header();
-  for (const g of grupos) {
-    const n = g.notas || {};
-    const ep = n.entrega_preliminar ?? "", ef = n.entrega_final ?? "", af = n.apresentacao_final ?? "";
-    const tem = ep !== "" || ef !== "" || af !== "";
-    const total = tem ? (Number(ep)||0) + (Number(ef)||0) + (Number(af)||0) : null;
-    const cel = (v, s) => v !== "" ? v + s : "—";
-    row([`${g.nome}`, g.tema || "—", cel(ep,"pts"), cel(ef,"pts"), cel(af,"pts"), tem ? total + "/50" : "—"], true, total);
-    const alunos = g.alunos || [];
-    if (!alunos.length) row(["  (sem alunos)","","","","",""], false, null);
-    else alunos.forEach(a => row([
-      `  ${alunoNome(a)}${g.representante === alunoNome(a) ? " (rep.)" : ""}`,
-      g.tema || "—", cel(ep,"pts"), cel(ef,"pts"), cel(af,"pts"), tem ? total + "/50" : "—",
-    ], false, total));
-    y += 2;
+
+  if (notasAlfabetica) {
+    for (const { aluno, grupo } of alunosDaTurmaOrdenados()) {
+      const { ep, ef, af, total } = notasExport(grupo);
+      row([
+        `${alunoNome(aluno)}${grupo.representante === alunoNome(aluno) ? " (rep.)" : ""}`,
+        grupo.nome, grupo.tema || "—",
+        cel(ep,"pts"), cel(ef,"pts"), cel(af,"pts"), total !== "" ? total + "/50" : "—",
+      ], false, total !== "" ? total : null);
+    }
+  } else {
+    for (const g of grupos) {
+      const { ep, ef, af, total } = notasExport(g);
+      const n = total !== "" ? total : null;
+      row([g.nome, g.tema || "—", cel(ep,"pts"), cel(ef,"pts"), cel(af,"pts"), n != null ? n + "/50" : "—"], true, n);
+      const alunos = g.alunos || [];
+      if (!alunos.length) row(["  (sem alunos)","","","","",""], false, null);
+      else alunos.forEach(a => row([
+        `  ${alunoNome(a)}${g.representante === alunoNome(a) ? " (rep.)" : ""}`,
+        g.tema || "—", cel(ep,"pts"), cel(ef,"pts"), cel(af,"pts"), n != null ? n + "/50" : "—",
+      ], false, n));
+      y += 2;
+    }
   }
   docx.setFont("helvetica","italic"); docx.setFontSize(7); docx.setTextColor(...MUTED);
   docx.text("Grupos de Projeto — lançamento de notas", M, PH - 6);
